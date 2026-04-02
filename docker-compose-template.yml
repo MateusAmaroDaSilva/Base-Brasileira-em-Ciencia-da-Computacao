@@ -1,0 +1,220 @@
+version: '3.9'
+
+services:
+  # ============= BANCO DE DADOS =============
+  postgres:
+    image: postgres:16-alpine
+    container_name: base-computacao-postgres
+    environment:
+      POSTGRES_DB: base_computacao
+      POSTGRES_USER: dev_user
+      POSTGRES_PASSWORD: dev_password_123
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=pt_BR.UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev_user -d base_computacao"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - base-network
+
+  # ============= CACHE / SESSION =============
+  redis:
+    image: redis:7-alpine
+    container_name: base-computacao-redis
+    command: redis-server --appendonly yes --requirepass redis_password_123
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - base-network
+
+  # ============= BUSCA INDEXADA =============
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.10.2
+    container_name: base-computacao-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - ELASTIC_PASSWORD=elastic_password_123
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200 >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - base-network
+
+  # ============= BACKEND API =============
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: base-computacao-backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    environment:
+      # Database
+      DATABASE_URL: postgresql://dev_user:dev_password_123@postgres:5432/base_computacao
+      
+      # Redis
+      REDIS_URL: redis://:redis_password_123@redis:6379/0
+      
+      # Elasticsearch
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      
+      # App
+      DEBUG: "true"
+      SECRET_KEY: dev-secret-key-change-in-production
+      ENVIRONMENT: development
+      
+      # OAI-PMH
+      OAI_REQUEST_TIMEOUT: 30
+      OAI_RETRY_ATTEMPTS: 3
+      OAI_BATCH_SIZE: 100
+      
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - base-network
+
+  # ============= CELERY WORKER =============
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: base-computacao-celery
+    command: celery -A app.tasks worker --loglevel=info
+    environment:
+      # Database
+      DATABASE_URL: postgresql://dev_user:dev_password_123@postgres:5432/base_computacao
+      
+      # Redis (Broker)
+      REDIS_URL: redis://:redis_password_123@redis:6379/0
+      
+      # Elasticsearch
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      
+      # App
+      ENVIRONMENT: development
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - postgres
+      - redis
+      - backend
+    networks:
+      - base-network
+
+  # ============= CELERY BEAT (SCHEDULER) =============
+  celery_beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: base-computacao-celery-beat
+    command: celery -A app.tasks beat --loglevel=info
+    environment:
+      DATABASE_URL: postgresql://dev_user:dev_password_123@postgres:5432/base_computacao
+      REDIS_URL: redis://:redis_password_123@redis:6379/0
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ENVIRONMENT: development
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - postgres
+      - redis
+      - backend
+    networks:
+      - base-network
+
+  # ============= FRONTEND =============
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: base-computacao-frontend
+    environment:
+      VITE_API_URL: http://localhost:8000
+      VITE_API_TIMEOUT: 30000
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend/src:/app/src
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - base-network
+
+  # ============= NGINX (REVERSE PROXY) =============
+  # Descomente para usar em produção
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: base-computacao-nginx
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./infra/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./infra/nginx/ssl:/etc/nginx/ssl:ro
+  #   depends_on:
+  #     - backend
+  #     - frontend
+  #   networks:
+  #     - base-network
+
+volumes:
+  postgres_data:
+  redis_data:
+  elasticsearch_data:
+
+networks:
+  base-network:
+    driver: bridge
+
+# ============ INSTRUÇÕES DE USO ============
+# 
+# Iniciar todos os serviços:
+#   docker-compose up -d
+#
+# Ver logs de um serviço:
+#   docker-compose logs -f backend
+#
+# Parar todos:
+#   docker-compose down
+#
+# Deletar volumes (CUIDADO!):
+#   docker-compose down -v
+#
+# Executar comando no backend:
+#   docker-compose exec backend python scripts/validate_oai_pmh.py
+#
+# Entrar no banco:
+#   docker-compose exec postgres psql -U dev_user -d base_computacao
+#
