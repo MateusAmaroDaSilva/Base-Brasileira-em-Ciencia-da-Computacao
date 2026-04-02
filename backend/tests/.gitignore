@@ -1,0 +1,22 @@
+# Test artifacts
+.coverage
+.pytest_cache/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# Coverage reports
+htmlcov/
+coverage.xml
+.coverage.*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
