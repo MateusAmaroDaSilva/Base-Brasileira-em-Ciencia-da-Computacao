@@ -58,7 +58,7 @@ A fragmentação de repositórios acadêmicos brasileiros dificulta o acesso cen
 
 | Papel | Nome |
 |-------|------|
-| Desenvolvedor Principal | Mateus Amaro da Silva |
+| Desenvolvedor | Mateus Amaro da Silva |
 | Desenvolvedor | MARCOS GABRIEL DE PAULA MARTINS |
 | Orientador | Rafael Gutierres Castanha |
 
