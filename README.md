@@ -515,12 +515,6 @@ O projeto inclui automação completa com GitHub Actions:
 - Verificação de vulnerabilidades
 - Análise de dependências
 
-### Acompanhamento
-
-Acesse: https://github.com/MateusAmaroDaSilva/Base-Brasileira-em-Ciencia-da-Computacao/actions
-
-Status dos workflows aparece em tempo real após cada push.
-
 ---
 
 ## Licença
