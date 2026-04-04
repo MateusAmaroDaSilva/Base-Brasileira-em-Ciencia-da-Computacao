@@ -12,6 +12,24 @@ os.environ["ELASTICSEARCH_PORT"] = "9200"
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
 
 
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_db():
+    """Initialize test database with all tables before running tests"""
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool
+    )
+    
+    # Import Base which registers all models
+    from app.core.database import Base
+    
+    # Create all tables
+    Base.metadata.create_all(bind=engine)
+    yield
+    Base.metadata.drop_all(bind=engine)
+
+
 @pytest.fixture(scope="session")
 def test_db_engine():
     engine = create_engine(

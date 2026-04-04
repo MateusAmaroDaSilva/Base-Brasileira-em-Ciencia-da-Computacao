@@ -56,6 +56,20 @@ jobs:
         pip install -r requirements.txt
         pip install -r tests/requirements-dev.txt
     
+    - name: Initialize test database
+      working-directory: backend
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+      run: |
+        python -c "
+        import os
+        os.environ['DATABASE_URL'] = 'postgresql://postgres:postgres@localhost:5432/test_db'
+        from app.core.database import Base, engine
+        print('Creating database tables...')
+        Base.metadata.create_all(bind=engine)
+        print('Database tables created successfully!')
+        "
+    
     - name: Lint with flake8
       working-directory: backend
       run: |
