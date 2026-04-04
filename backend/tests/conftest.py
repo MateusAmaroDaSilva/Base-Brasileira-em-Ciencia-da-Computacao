@@ -19,7 +19,7 @@ def test_db_engine():
         connect_args={"check_same_thread": False},
         poolclass=StaticPool
     )
-    from app.models import Base
+    from app.core.database import Base
     Base.metadata.create_all(engine)
     return engine
 
@@ -29,7 +29,7 @@ def db_session(test_db_engine):
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_db_engine)
     session = SessionLocal()
     
-    from app.models import Base
+    from app.core.database import Base
     Base.metadata.create_all(test_db_engine)
     
     yield session
