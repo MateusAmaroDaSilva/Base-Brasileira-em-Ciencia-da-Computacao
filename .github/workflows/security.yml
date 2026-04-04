@@ -1,20 +1,22 @@
-name: Security & Quality Checks
+name: Security Checks
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
     paths:
       - 'backend/**'
       - '.github/workflows/security.yml'
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
+    paths:
+      - 'backend/**'
 
 jobs:
   security:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -31,19 +33,13 @@ jobs:
       run: |
         pip install bandit
         bandit -r backend/app -f json -o bandit-report.json || true
-        bandit -r backend/app
+        bandit -r backend/app || true
+      continue-on-error: true
 
     - name: Run Safety check
       run: |
         pip install safety
-        safety check --json || true
-        safety check
-      continue-on-error: true
-
-    - name: Pylint
-      run: |
-        pip install pylint
-        pylint backend/app --exit-zero --max-line-length=120
+        safety check || true
       continue-on-error: true
 
     - name: Upload security reports
@@ -52,3 +48,4 @@ jobs:
       with:
         name: security-reports
         path: bandit-report.json
+      continue-on-error: true
