@@ -24,8 +24,7 @@ class MagazineResponse(MagazineBase):
     last_sync: Optional[datetime] = None
     created_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class ArticleBase(BaseModel):
@@ -52,8 +51,7 @@ class ArticleResponse(ArticleBase):
     doi: Optional[str] = None
     created_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class SearchRequest(BaseModel):
@@ -83,5 +81,4 @@ class SyncLogResponse(BaseModel):
     ended_at: Optional[datetime] = None
     message: Optional[str] = None
     
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}

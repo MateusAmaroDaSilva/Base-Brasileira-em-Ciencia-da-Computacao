@@ -1,0 +1,73 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    
+    - name: Install dependencies
+      working-directory: ./backend
+      run: |
+        pip install -r requirements.txt
+        pip install flake8 pylint black isort
+    
+    - name: Format check with black
+      working-directory: ./backend
+      continue-on-error: true
+      run: |
+        black --check --diff app/
+    
+    - name: Import sort check with isort
+      working-directory: ./backend
+      continue-on-error: true
+      run: |
+        isort --check-only --diff app/
+    
+    - name: Lint with flake8
+      working-directory: ./backend
+      continue-on-error: true
+      run: |
+        flake8 app/ \
+          --count \
+          --statistics \
+          --max-line-length=120 \
+          --max-complexity=10 \
+          --exclude venv
+    
+    - name: Type checking with mypy
+      working-directory: ./backend
+      continue-on-error: true
+      run: |
+        pip install mypy types-requests
+        mypy app/ --ignore-missing-imports || true
+    
+    - name: Security check with bandit
+      working-directory: ./backend
+      continue-on-error: true
+      run: |
+        pip install bandit
+        bandit -r app/ -ll -f json -o bandit-report.json || true
+    
+    - name: OWASP Dependency Check
+      uses: dependency-check/Dependency-Check_Action@main
+      continue-on-error: true
+      with:
+        project: 'Base Brasileira em Ciência da Computação'
+        path: 'backend'
+        format: 'JSON'
+        args: >
+          --enable-retired

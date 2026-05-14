@@ -64,9 +64,11 @@ def sync_magazine(self, magazine_id: int):
             except Exception as e:
                 logger.error(f"Erro ao adicionar artigo {article_data.get('oai_identifier', '?')}: {e}")
         
-        for article_id, article_data in updated_articles.items():
+        # updated_articles é uma lista, não um dict
+        for article_data in updated_articles:
             try:
-                article = db.query(Article).filter(Article.id == article_id).first()
+                oai_id = article_data.get('oai_identifier')
+                article = db.query(Article).filter(Article.oai_identifier == oai_id).first()
                 if article:
                     article_data['magazine_id'] = magazine_id
                     for key, value in article_data.items():
@@ -74,7 +76,7 @@ def sync_magazine(self, magazine_id: int):
                     article.updated_at = datetime.utcnow()
                     articles_updated_count += 1
             except Exception as e:
-                logger.error(f"Erro ao atualizar artigo {article_id}: {e}")
+                logger.error(f"Erro ao atualizar artigo: {e}")
         
         db.commit()
         
