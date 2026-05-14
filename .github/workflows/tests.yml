@@ -121,7 +121,6 @@ jobs:
       run: |
         pip install requests lxml
         python -c "
-        import timeout_decorator
         from app.extractors.oai_pmh import OAIPMHExtractor
         
         urls = [
