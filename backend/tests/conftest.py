@@ -98,11 +98,9 @@ def mock_celery_task():
 @pytest.fixture
 def sample_magazine():
     return {
-        "id": 1,
         "name": "RBIE",
-        "url": "http://journals-sol.sbc.org.br/index.php/rbie/oai",
+        "url_oai_pmh": "http://journals-sol.sbc.org.br/index.php/rbie/oai",
         "description": "Brazilian Journal of Computers in Education",
-        "active": True,
     }
 
 
@@ -127,6 +125,22 @@ def sample_search_query():
         "limit": 10,
         "offset": 0,
     }
+
+
+@pytest.fixture
+def mock_celery_tasks():
+    """Mock Celery tasks to avoid Redis/Broker connection errors"""
+    with patch('app.api.admin.sync_magazine') as mock_sync_mag, \
+         patch('app.api.admin.sync_all_magazines') as mock_sync_all:
+        
+        # Setup delay method for both mocks
+        mock_sync_mag.delay = MagicMock(return_value=None)
+        mock_sync_all.delay = MagicMock(return_value=None)
+        
+        yield {
+            'sync_magazine': mock_sync_mag,
+            'sync_all_magazines': mock_sync_all
+        }
 
 
 @pytest.fixture

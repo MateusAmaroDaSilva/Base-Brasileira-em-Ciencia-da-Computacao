@@ -128,16 +128,17 @@ class TestAdminEndpoints:
         assert response.status_code == 200
         assert isinstance(response.json(), (list, dict))
 
-    def test_manual_sync(self, test_client):
+    def test_manual_sync(self, test_client, mock_celery_tasks):
         response = test_client.post("/api/v1/admin/sync")
-        assert response.status_code in [200, 202, 404]
+        assert response.status_code in [200, 202]
+        mock_celery_tasks['sync_all_magazines'].delay.assert_called_once()
 
-    def test_manual_sync_single_magazine(self, test_client):
+    def test_manual_sync_single_magazine(self, test_client, mock_celery_tasks):
         response = test_client.post(
-            "/api/v1/admin/sync",
-            json={"magazine_id": 1}
+            "/api/v1/admin/sync?magazine_id=1"
         )
-        assert response.status_code in [200, 202, 404, 400]
+        assert response.status_code in [200, 202]
+        mock_celery_tasks['sync_magazine'].delay.assert_called_once_with(1)
 
     def test_health_check(self, test_client):
         response = test_client.get("/health")
