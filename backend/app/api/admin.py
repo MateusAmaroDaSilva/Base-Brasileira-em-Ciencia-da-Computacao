@@ -10,15 +10,9 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 @router.get("/logs", response_model=List[SyncLogResponse])
-def get_sync_logs(
-    limit: int = 50,
-    db: Session = Depends(get_db)
-):
-    logs = db.query(SyncLog)\
-        .order_by(desc(SyncLog.started_at))\
-        .limit(limit)\
-        .all()
-    
+def get_sync_logs(limit: int = 50, db: Session = Depends(get_db)):
+    logs = db.query(SyncLog).order_by(desc(SyncLog.started_at)).limit(limit).all()
+
     return logs
 
 
@@ -34,7 +28,4 @@ def manual_sync(magazine_id: int = None):
 
 @router.get("/health")
 def health_check():
-    return {
-        "status": "healthy",
-        "service": "Base Brasileira em Ciência da Computação"
-    }
+    return {"status": "healthy", "service": "Base Brasileira em Ciência da Computação"}

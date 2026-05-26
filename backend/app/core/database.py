@@ -9,18 +9,10 @@ is_sqlite = "sqlite" in settings.DATABASE_URL
 
 if is_sqlite:
     engine = create_engine(
-        settings.DATABASE_URL,
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-        echo=False
+        settings.DATABASE_URL, connect_args={"check_same_thread": False}, poolclass=StaticPool, echo=False
     )
 else:
-    engine = create_engine(
-        settings.DATABASE_URL,
-        pool_size=20,
-        max_overflow=0,
-        echo=False
-    )
+    engine = create_engine(settings.DATABASE_URL, pool_size=20, max_overflow=0, echo=False)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -37,7 +29,7 @@ def get_db():
 
 class Magazine(Base):
     __tablename__ = "magazines"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(255), unique=True, index=True, nullable=False)
     url_oai_pmh = Column(String(500), unique=True, nullable=False)
@@ -51,7 +43,7 @@ class Magazine(Base):
 
 class Article(Base):
     __tablename__ = "articles"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     oai_identifier = Column(String(500), unique=True, index=True, nullable=False)
     magazine_id = Column(Integer, nullable=False, index=True)
@@ -75,10 +67,10 @@ class Article(Base):
 
 class SyncLog(Base):
     __tablename__ = "sync_logs"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     magazine_id = Column(Integer, nullable=False, index=True)
-    status = Column(String(20), nullable=False, index=True)  
+    status = Column(String(20), nullable=False, index=True)
     articles_new = Column(Integer, default=0)
     articles_updated = Column(Integer, default=0)
     articles_failed = Column(Integer, default=0)

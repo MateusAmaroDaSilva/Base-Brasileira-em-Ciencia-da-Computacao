@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, List
 
+
 class MagazineBase(BaseModel):
     name: str
     url_oai_pmh: str
@@ -23,7 +24,7 @@ class MagazineResponse(MagazineBase):
     is_active: bool
     last_sync: Optional[datetime] = None
     created_at: datetime
-    
+
     model_config = {"from_attributes": True}
 
 
@@ -50,7 +51,7 @@ class ArticleResponse(ArticleBase):
     url: Optional[str] = None
     doi: Optional[str] = None
     created_at: datetime
-    
+
     model_config = {"from_attributes": True}
 
 
@@ -80,5 +81,5 @@ class SyncLogResponse(BaseModel):
     started_at: datetime
     ended_at: Optional[datetime] = None
     message: Optional[str] = None
-    
+
     model_config = {"from_attributes": True}

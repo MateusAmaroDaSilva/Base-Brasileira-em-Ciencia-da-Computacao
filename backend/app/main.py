@@ -4,10 +4,7 @@ from app.core.config import settings
 from app.api import magazines, articles, admin
 
 # Criar app
-app = FastAPI(
-    title=settings.PROJECT_NAME,
-    debug=settings.DEBUG
-)
+app = FastAPI(title=settings.PROJECT_NAME, debug=settings.DEBUG)
 
 # CORS
 app.add_middleware(
@@ -30,7 +27,7 @@ async def root():
         "message": "Base Brasileira em Ciência da Computação",
         "version": "1.0.0",
         "docs": "/docs",
-        "redoc": "/redoc"
+        "redoc": "/redoc",
     }
 
 
@@ -41,9 +38,5 @@ async def health():
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(
-        "app.main:app",
-        host="0.0.0.0",
-        port=8000,
-        reload=True
-    )
+
+    uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)
