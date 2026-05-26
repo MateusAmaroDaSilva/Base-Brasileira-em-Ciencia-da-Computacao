@@ -56,9 +56,22 @@ def search_articles(search: SearchRequest, db: Session = Depends(get_db)):
 def search_elasticsearch(search: SearchRequest, db: Session = Depends(get_db)):
     es_client = get_elasticsearch_client()
 
-    # Buscar no Elasticsearch
+    year_from = search.year_from
+    year_to = search.year_to
+    if not year_from and search.date_from:
+        year_from = search.date_from.year
+    if not year_to and search.date_to:
+        year_to = search.date_to.year
+
     es_results = es_client.search(
-        query=search.query, magazine_id=search.magazine_id, limit=search.limit, offset=search.offset
+        query=search.query,
+        magazine_id=search.magazine_id,
+        limit=search.limit,
+        offset=search.offset,
+        year_from=year_from,
+        year_to=year_to,
+        language=search.language,
+        search_type=search.search_type,
     )
 
     article_ids = [int(doc.get("article_id")) for doc in es_results.get("articles", [])]
@@ -66,15 +79,16 @@ def search_elasticsearch(search: SearchRequest, db: Session = Depends(get_db)):
     if article_ids:
         articles = db.query(Article).filter(Article.id.in_(article_ids)).all()
 
+    facets = es_results.get("facets", {})
+    facets["search_engine"] = "elasticsearch"
+    facets["total_results"] = es_results.get("total", 0)
+    facets["limit"] = search.limit
+    facets["offset"] = search.offset
+
     return SearchResponse(
         total=es_results.get("total", 0),
         articles=articles,
-        facets={
-            "search_engine": "elasticsearch",
-            "total_results": es_results.get("total", 0),
-            "limit": search.limit,
-            "offset": search.offset,
-        },
+        facets=facets,
     )
 
 

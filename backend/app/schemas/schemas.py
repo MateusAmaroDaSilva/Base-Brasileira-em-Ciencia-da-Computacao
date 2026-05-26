@@ -56,10 +56,14 @@ class ArticleResponse(ArticleBase):
 
 
 class SearchRequest(BaseModel):
-    query: str
+    query: str = ""
     date_from: Optional[datetime] = None
     date_to: Optional[datetime] = None
     magazine_id: Optional[int] = None
+    year_from: Optional[int] = None
+    year_to: Optional[int] = None
+    language: Optional[str] = None
+    search_type: str = "simple"  # "simple" or "boolean"
     limit: int = 20
     offset: int = 0
 

@@ -1,251 +1,199 @@
-import { useState, useEffect } from 'react'
-import axios from 'axios'
-import SearchBar from '../components/SearchBar'
-import ArticleList from '../components/ArticleList'
-import Filters, { FilterState } from '../components/Filters'
 import { useNavigate } from 'react-router-dom'
-
-interface Article {
-  id: number
-  title: string
-  authors: string[]
-  published_date: string
-  magazine_id: number
-  abstract?: string
-  keywords?: string[]
-  url?: string
-  doi?: string
-  oai_identifier: string
-}
-
-interface Magazine {
-  id: number
-  title: string
-  oai_pmh_url?: string
-}
-
-interface SearchResponse {
-  total: number
-  articles: Article[]
-}
-
-const API_BASE_URL = 'http://localhost:8000/api/v1'
-const ITEMS_PER_PAGE = 20
+import { ChevronLeft, ChevronRight, Database, Zap } from 'lucide-react'
+import SearchBar from '../components/search/SearchBar'
+import MetadataSidebar from '../components/filters/MetadataSidebar'
+import ArticleList from '../components/articles/ArticleList'
+import { useSearch } from '../hooks/useSearch'
+import { useMagazines } from '../hooks/useMagazines'
+import type { SearchType } from '../types'
 
 export default function SearchPage() {
   const navigate = useNavigate()
+  const { magazines } = useMagazines()
+  const {
+    articles, total, facets, loading, error,
+    page, totalPages, itemsPerPage,
+    query, searchType, filters, hasSearched,
+    search, setPage, setFilters, setSearchType,
+  } = useSearch()
 
-  // State
-  const [articles, setArticles] = useState<Article[]>([])
-  const [magazines, setMagazines] = useState<Magazine[]>([])
-  const [searchQuery, setSearchQuery] = useState('')
-  const [filters, setFilters] = useState<FilterState>({
-    magazine_id: null,
-    date_from: '',
-    date_to: '',
-  })
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [totalResults, setTotalResults] = useState(0)
-
-  // Computed
-  const totalPages = Math.ceil(totalResults / ITEMS_PER_PAGE)
-  const offset = (currentPage - 1) * ITEMS_PER_PAGE
-
-  // Effects
-  useEffect(() => {
-    fetchMagazines()
-  }, [])
-
-  useEffect(() => {
-    setCurrentPage(1)
-    fetchArticles()
-  }, [searchQuery, filters])
-
-  useEffect(() => {
-    fetchArticles()
-  }, [currentPage])
-
-  // Handlers
-  const fetchMagazines = async () => {
-    try {
-      const response = await axios.get(`${API_BASE_URL}/magazines`)
-      setMagazines(response.data)
-    } catch (err) {
-      setError('Erro ao carregar revistas')
-      console.error(err)
-    }
+  function handleSearch(q: string, type: SearchType) {
+    setSearchType(type)
+    search(q, type, filters)
   }
 
-  const fetchArticles = async () => {
-    setLoading(true)
-    setError(null)
-    try {
-      const searchPayload = {
-        query: searchQuery,
-        magazine_id: filters.magazine_id,
-        date_from: filters.date_from ? `${filters.date_from}T00:00:00` : null,
-        date_to: filters.date_to ? `${filters.date_to}T23:59:59` : null,
-        offset: offset,
-        limit: ITEMS_PER_PAGE,
-      }
-
-      // Remove null values
-      const cleanedPayload = Object.fromEntries(
-        Object.entries(searchPayload).filter(([, v]) => v !== null)
-      )
-
-      const response = await axios.post<SearchResponse>(
-        `${API_BASE_URL}/articles/search`,
-        cleanedPayload
-      )
-
-      setArticles(response.data.articles)
-      setTotalResults(response.data.total)
-    } catch (err) {
-      setError('Erro ao carregar artigos. Tente novamente.')
-      console.error(err)
-      setArticles([])
-      setTotalResults(0)
-    } finally {
-      setLoading(false)
-    }
+  function handlePageChange(newPage: number) {
+    setPage(newPage)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  const handleFilterChange = (newFilters: FilterState) => {
-    setFilters(newFilters)
-  }
+  const offset = (page - 1) * itemsPerPage
+  const isElastic = facets?.search_engine === 'elasticsearch'
+  const showSidebar = hasSearched && !loading
 
-  const handleArticleClick = (articleId: number) => {
-    navigate(`/article/${articleId}`)
-  }
-
-  const goToPage = (page: number) => {
-    const newPage = Math.max(1, Math.min(page, totalPages))
-    setCurrentPage(newPage)
-    window.scrollTo(0, 0)
+  function pageNumbers(): (number | '…')[] {
+    if (totalPages <= 7) return Array.from({ length: totalPages }, (_, i) => i + 1)
+    const pages: (number | '…')[] = [1]
+    if (page > 3) pages.push('…')
+    for (let p = Math.max(2, page - 1); p <= Math.min(totalPages - 1, page + 1); p++) pages.push(p)
+    if (page < totalPages - 2) pages.push('…')
+    pages.push(totalPages)
+    return pages
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <header className="bg-white shadow-md sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <h1 className="text-3xl font-bold text-gray-900">
-            📚 Base Brasileira em Ciência da Computação
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Explore uma vasta coleção de artigos científicos brasileiros
-          </p>
+    <div className="min-h-screen bg-slate-50 flex flex-col">
+      {/* Hero / Search area */}
+      <div className={`transition-all duration-500 ${hasSearched ? 'py-6 border-b border-slate-200 bg-white shadow-sm' : 'py-20'}`}>
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
+          {!hasSearched && (
+            <div className="text-center mb-8">
+              <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-2">
+                Pesquise Ciência da Computação Brasileira
+              </h1>
+              <p className="text-slate-500 text-lg">
+                Acervo de artigos científicos de 5 revistas nacionais via OAI-PMH
+              </p>
+            </div>
+          )}
+          <SearchBar
+            onSearch={handleSearch}
+            initialQuery={query}
+            initialType={searchType}
+            loading={loading}
+          />
         </div>
-      </header>
+      </div>
 
-      {/* Main Content */}
-      <main className="max-w-[90rem] mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search Bar */}
-        <div className="mb-8">
-          <SearchBar query={searchQuery} onSearch={setSearchQuery} />
-        </div>
-
-        {/* Filters */}
-        <div className="mb-8">
-          <Filters magazines={magazines} onFilterChange={handleFilterChange} />
-        </div>
-
-        {/* Error Message */}
+      {/* Main content */}
+      <main className="flex-1 max-w-screen-xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6">
         {error && (
-          <div className="mb-8 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm">
             {error}
           </div>
         )}
 
-        {/* Results Info */}
-        {totalResults > 0 && (
-          <div className="mb-6 text-sm text-gray-600">
-            Mostrando <span className="font-semibold">{offset + 1}</span> até{' '}
-            <span className="font-semibold">
-              {Math.min(offset + ITEMS_PER_PAGE, totalResults)}
-            </span>{' '}
-            de <span className="font-semibold">{totalResults}</span> resultados
+        {hasSearched && (
+          <div className="flex gap-6">
+            {/* Sidebar */}
+            {showSidebar && (
+              <MetadataSidebar
+                magazines={magazines}
+                filters={filters}
+                onFilterChange={setFilters}
+                magazineFacets={facets?.by_magazine}
+                yearFacets={facets?.by_year}
+              />
+            )}
+
+            {/* Results area */}
+            <div className="flex-1 min-w-0">
+              {/* Results header */}
+              <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <div className="flex items-center gap-3">
+                  <p className="text-sm text-slate-600">
+                    {loading ? (
+                      <span className="animate-pulse">Buscando...</span>
+                    ) : (
+                      <>
+                        <span className="font-semibold text-slate-900">{total.toLocaleString('pt-BR')}</span>
+                        {' '}artigo{total !== 1 ? 's' : ''} encontrado{total !== 1 ? 's' : ''}
+                        {total > 0 && (
+                          <span className="text-slate-400 ml-1">
+                            · mostrando {offset + 1}–{Math.min(offset + itemsPerPage, total)}
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </p>
+                  {isElastic && !loading && (
+                    <span className="inline-flex items-center gap-1 text-xs text-emerald-600 bg-emerald-50
+                                     border border-emerald-200 px-2 py-0.5 rounded-full font-medium">
+                      <Zap className="w-3 h-3" />
+                      Elasticsearch
+                    </span>
+                  )}
+                  {!isElastic && !loading && total > 0 && (
+                    <span className="inline-flex items-center gap-1 text-xs text-slate-500 bg-slate-100
+                                     border border-slate-200 px-2 py-0.5 rounded-full">
+                      <Database className="w-3 h-3" />
+                      SQL
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Articles */}
+              <ArticleList
+                articles={articles}
+                magazines={magazines}
+                loading={loading}
+                onArticleClick={(id) => navigate(`/article/${id}`)}
+              />
+
+              {/* Pagination */}
+              {!loading && totalPages > 1 && (
+                <nav className="mt-8 flex items-center justify-center gap-1" aria-label="Paginação">
+                  <button
+                    onClick={() => handlePageChange(page - 1)}
+                    disabled={page === 1}
+                    className="p-2 rounded-lg text-slate-500 hover:bg-slate-200 disabled:opacity-30
+                               disabled:cursor-not-allowed transition-colors"
+                    aria-label="Página anterior"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+
+                  {pageNumbers().map((p, i) =>
+                    p === '…' ? (
+                      <span key={`e-${i}`} className="px-2 text-slate-400 select-none">…</span>
+                    ) : (
+                      <button
+                        key={p}
+                        onClick={() => handlePageChange(p)}
+                        className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${
+                          page === p
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'text-slate-600 hover:bg-slate-200'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ),
+                  )}
+
+                  <button
+                    onClick={() => handlePageChange(page + 1)}
+                    disabled={page === totalPages}
+                    className="p-2 rounded-lg text-slate-500 hover:bg-slate-200 disabled:opacity-30
+                               disabled:cursor-not-allowed transition-colors"
+                    aria-label="Próxima página"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </nav>
+              )}
+            </div>
           </div>
         )}
 
-        {/* Articles List */}
-        <ArticleList
-          articles={articles}
-          onArticleClick={handleArticleClick}
-          isLoading={loading}
-        />
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="mt-12 flex items-center justify-between">
-            <button
-              onClick={() => goToPage(currentPage - 1)}
-              disabled={currentPage === 1 || loading}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
-            >
-              ← Anterior
-            </button>
-
-            <div className="flex items-center gap-2">
-              {Array.from({ length: totalPages }, (_, i) => i + 1)
-                .filter((page) => {
-                  const distance = Math.abs(page - currentPage)
-                  return distance <= 2 || page === 1 || page === totalPages
-                })
-                .map((page, idx, arr) => {
-                  const items = []
-
-                  // Add ellipsis if needed
-                  if (idx > 0 && arr[idx - 1] !== page - 1) {
-                    items.push(
-                      <span key={`ellipsis-${idx}`} className="px-2 text-gray-600">
-                        ...
-                      </span>
-                    )
-                  }
-
-                  items.push(
-                    <button
-                      key={page}
-                      onClick={() => goToPage(page)}
-                      disabled={loading}
-                      className={`px-3 py-2 rounded-lg transition ${
-                        currentPage === page
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-white text-indigo-600 hover:bg-indigo-50'
-                      } disabled:cursor-not-allowed`}
-                    >
-                      {page}
-                    </button>
-                  )
-
-                  return items
-                })}
+        {/* Initial state (no search yet) */}
+        {!hasSearched && !loading && (
+          <div className="max-w-2xl mx-auto mt-8">
+            <p className="text-center text-sm font-medium text-slate-500 mb-4">Revistas indexadas</p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {magazines.map((m) => (
+                <div key={m.id} className="bg-white rounded-xl border border-slate-200 px-4 py-3 text-center shadow-sm">
+                  <p className="text-sm font-semibold text-slate-700 truncate">{m.name}</p>
+                  {m.description && (
+                    <p className="text-xs text-slate-400 mt-0.5 truncate">{m.description}</p>
+                  )}
+                </div>
+              ))}
             </div>
-
-            <button
-              onClick={() => goToPage(currentPage + 1)}
-              disabled={currentPage === totalPages || loading}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition"
-            >
-              Próxima →
-            </button>
           </div>
         )}
       </main>
-
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <p className="text-center text-gray-600">
-            © 2026 Base Brasileira em Ciência da Computação. Todos os direitos
-            reservados.
-          </p>
-        </div>
-      </footer>
     </div>
   )
 }

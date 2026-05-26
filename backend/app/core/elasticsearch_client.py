@@ -139,10 +139,36 @@ class ElasticsearchClient:
 
         logger.info(f"✓ Bulk indexing: {indexed_count} sucesso, {failed_count} falhas")
 
-    def search(self, query: str, magazine_id: int = None, limit: int = 20, offset: int = 0):
+    def _has_boolean_operators(self, query: str) -> bool:
+        tokens = query.split()
+        return any(t in ("AND", "OR", "NOT") for t in tokens) or '"' in query or "(" in query
+
+    def search(
+        self,
+        query: str,
+        magazine_id: int = None,
+        limit: int = 20,
+        offset: int = 0,
+        year_from: int = None,
+        year_to: int = None,
+        language: str = None,
+        search_type: str = "simple",
+    ):
         try:
-            must_clauses = [
-                {
+            # Build main query clause
+            if not query:
+                query_clause = {"match_all": {}}
+            elif search_type == "boolean" or self._has_boolean_operators(query):
+                query_clause = {
+                    "query_string": {
+                        "query": query,
+                        "fields": ["title^3", "abstract^2", "authors", "keywords"],
+                        "default_operator": "OR",
+                        "lenient": True,
+                    }
+                }
+            else:
+                query_clause = {
                     "multi_match": {
                         "query": query,
                         "fields": ["title^3", "abstract^2", "authors", "keywords"],
@@ -150,16 +176,42 @@ class ElasticsearchClient:
                         "operator": "or",
                     }
                 }
-            ]
 
+            # Build filters
+            filters = []
             if magazine_id:
-                must_clauses.append({"term": {"magazine_id": magazine_id}})
+                filters.append({"term": {"magazine_id": magazine_id}})
+            if year_from or year_to:
+                date_range = {}
+                if year_from:
+                    date_range["gte"] = f"{year_from}-01-01"
+                if year_to:
+                    date_range["lte"] = f"{year_to}-12-31"
+                filters.append({"range": {"publication_date": date_range}})
+            if language:
+                filters.append({"term": {"language": language}})
+
+            if filters:
+                final_query = {"bool": {"must": [query_clause], "filter": filters}}
+            else:
+                final_query = query_clause if not query else {"bool": {"must": [query_clause]}}
 
             search_body = {
-                "query": {"bool": {"must": must_clauses}},
-                "sort": [{"publication_date": {"order": "desc"}}],
+                "query": final_query,
+                "sort": [{"publication_date": {"order": "desc", "missing": "_last"}}],
                 "from": offset,
                 "size": limit,
+                "aggs": {
+                    "by_magazine": {"terms": {"field": "magazine_id", "size": 20}},
+                    "by_year": {
+                        "date_histogram": {
+                            "field": "publication_date",
+                            "calendar_interval": "year",
+                            "format": "yyyy",
+                            "min_doc_count": 1,
+                        }
+                    },
+                },
             }
 
             results = self.es.search(index=self.index_name, body=search_body)
@@ -168,10 +220,28 @@ class ElasticsearchClient:
             total = hits.get("total", {}).get("value", 0)
             articles = [hit["_source"] for hit in hits.get("hits", [])]
 
-            return {"total": total, "articles": articles, "limit": limit, "offset": offset}
+            aggs = results.get("aggregations", {})
+            facets = {
+                "by_magazine": [
+                    {"id": b["key"], "count": b["doc_count"]}
+                    for b in aggs.get("by_magazine", {}).get("buckets", [])
+                ],
+                "by_year": [
+                    {"year": b["key_as_string"], "count": b["doc_count"]}
+                    for b in aggs.get("by_year", {}).get("buckets", [])
+                ],
+            }
+
+            return {
+                "total": total,
+                "articles": articles,
+                "limit": limit,
+                "offset": offset,
+                "facets": facets,
+            }
         except Exception as e:
             logger.error(f"Erro na busca: {e}")
-            return {"total": 0, "articles": [], "limit": limit, "offset": offset}
+            return {"total": 0, "articles": [], "limit": limit, "offset": offset, "facets": {}}
 
     def suggest(self, query: str, limit: int = 5):
         try:
