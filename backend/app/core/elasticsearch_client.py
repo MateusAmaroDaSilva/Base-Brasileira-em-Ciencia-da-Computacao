@@ -64,6 +64,9 @@ class ElasticsearchClient:
         except Exception as e:
             logger.error(f"Erro ao criar index: {e}")
     
+    def create_index(self):
+        self._create_index_if_not_exists()
+
     def index_article(self, article_dict: dict):
         try:
             doc_id = article_dict.get('id')

@@ -6,7 +6,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def test_magazine(magazine_url: str, magazine_name: str):
+def run_magazine_validation(magazine_url: str, magazine_name: str):
     logger.info(f"\n{'='*60}")
     logger.info(f"Testando: {magazine_name}")
     logger.info(f"URL: {magazine_url}")
@@ -67,7 +67,7 @@ def main():
     
     for url, name in magazines:
         try:
-            results[name] = test_magazine(url, name)
+            results[name] = run_magazine_validation(url, name)
         except Exception as e:
             logger.error(f"Erro ao testar {name}: {e}")
             results[name] = False
