@@ -54,13 +54,14 @@ jobs:
     - name: Image scan (Trivy)
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest'
+        image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main'
         format: 'sarif'
         output: 'trivy-results.sarif'
       continue-on-error: true
-    
+
     - name: Upload Trivy results
       uses: github/codeql-action/upload-sarif@v2
       if: always()
+      continue-on-error: true
       with:
         sarif_file: 'trivy-results.sarif'
