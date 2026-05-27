@@ -73,6 +73,13 @@ export default function SearchPage() {
           </div>
         )}
 
+        {!error && hasSearched && facets?.search_engine === 'sql_fallback' && !loading && (
+          <div className="mb-6 bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-xl text-sm flex items-center gap-2">
+            <Database className="w-4 h-4 flex-shrink-0" />
+            Elasticsearch indisponível. Exibindo resultados via busca SQL — operadores booleanos ignorados.
+          </div>
+        )}
+
         {hasSearched && (
           <div className="flex gap-6">
             {/* Sidebar */}

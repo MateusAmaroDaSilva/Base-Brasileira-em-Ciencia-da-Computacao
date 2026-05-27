@@ -13,7 +13,7 @@ export async function searchArticles(params: SearchParams): Promise<SearchRespon
   const { query, searchType, filters, page, limit } = params
   const offset = (page - 1) * limit
 
-  const useElastic = searchType === 'boolean' || hasBoolean(query)
+  const useElastic = searchType === 'boolean'
   const endpoint = useElastic ? '/articles/elasticsearch/search' : '/articles/search'
 
   const body: Record<string, unknown> = {

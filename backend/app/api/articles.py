@@ -1,3 +1,5 @@
+import re
+from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
@@ -5,6 +7,12 @@ from app.core.database import get_db, Article
 from app.schemas.schemas import ArticleResponse, SearchRequest, SearchResponse
 from app.core.elasticsearch_client import get_elasticsearch_client
 from typing import List
+
+
+def _strip_boolean_operators(query: str) -> str:
+    clean = re.sub(r'\b(AND|OR|NOT)\b', ' ', query)
+    clean = re.sub(r'[()"]', ' ', clean)
+    return ' '.join(clean.split())
 
 router = APIRouter(prefix="/articles", tags=["articles"])
 
@@ -73,6 +81,28 @@ def search_elasticsearch(search: SearchRequest, db: Session = Depends(get_db)):
         language=search.language,
         search_type=search.search_type,
     )
+
+    if not es_results.get("available", True):
+        sql_query = db.query(Article)
+        clean_text = _strip_boolean_operators(search.query)
+        if clean_text:
+            term = f"%{clean_text}%"
+            sql_query = sql_query.filter(
+                (Article.title.ilike(term)) | (Article.abstract.ilike(term))
+            )
+        if search.magazine_id:
+            sql_query = sql_query.filter(Article.magazine_id == search.magazine_id)
+        if year_from:
+            sql_query = sql_query.filter(Article.publication_date >= date(year_from, 1, 1))
+        if year_to:
+            sql_query = sql_query.filter(Article.publication_date <= date(year_to, 12, 31))
+        total = sql_query.count()
+        articles = sql_query.order_by(desc(Article.publication_date)).offset(search.offset).limit(search.limit).all()
+        return SearchResponse(
+            total=total,
+            articles=articles,
+            facets={"search_engine": "sql_fallback", "total_results": total, "limit": search.limit, "offset": search.offset},
+        )
 
     article_ids = [int(doc.get("article_id")) for doc in es_results.get("articles", [])]
     articles = []

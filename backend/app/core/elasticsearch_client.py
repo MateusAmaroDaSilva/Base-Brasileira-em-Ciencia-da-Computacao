@@ -7,7 +7,12 @@ logger = logging.getLogger(__name__)
 
 class ElasticsearchClient:
     def __init__(self):
-        self.es = Elasticsearch([f"http://{settings.ELASTICSEARCH_HOST}:{settings.ELASTICSEARCH_PORT}"])
+        self.es = Elasticsearch(
+            [f"http://{settings.ELASTICSEARCH_HOST}:{settings.ELASTICSEARCH_PORT}"],
+            request_timeout=3,
+            max_retries=0,
+            retry_on_timeout=False,
+        )
         self.index_name = "articles"
         self._create_index_if_not_exists()
 
@@ -238,10 +243,11 @@ class ElasticsearchClient:
                 "limit": limit,
                 "offset": offset,
                 "facets": facets,
+                "available": True,
             }
         except Exception as e:
             logger.error(f"Erro na busca: {e}")
-            return {"total": 0, "articles": [], "limit": limit, "offset": offset, "facets": {}}
+            return {"total": 0, "articles": [], "limit": limit, "offset": offset, "facets": {}, "available": False}
 
     def suggest(self, query: str, limit: int = 5):
         try:

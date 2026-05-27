@@ -67,10 +67,24 @@ export function useSearch() {
         }))
       } catch (err: unknown) {
         if (err instanceof Error && err.name === 'CanceledError') return
+
+        let errorMsg = 'Erro ao realizar a busca.'
+        if (err && typeof err === 'object' && 'response' in err) {
+          const axiosErr = err as { response?: { status: number; data?: { detail?: string } } }
+          if (axiosErr.response) {
+            const detail = axiosErr.response.data?.detail
+            errorMsg = `Erro ${axiosErr.response.status}: ${detail ?? 'Resposta inválida do servidor.'}`
+          } else if ('message' in err) {
+            errorMsg = `Erro de rede: ${(err as { message: string }).message}`
+          }
+        } else if (err instanceof Error) {
+          errorMsg = `Erro: ${err.message}`
+        }
+
         setState((prev) => ({
           ...prev,
           loading: false,
-          error: 'Erro ao realizar a busca. Verifique a conexão com o servidor.',
+          error: errorMsg,
           articles: [],
           total: 0,
           facets: undefined,
