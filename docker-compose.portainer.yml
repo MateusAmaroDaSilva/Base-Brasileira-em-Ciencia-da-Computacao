@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
 
   postgres:
@@ -8,32 +10,38 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     networks:
-      - base_net
-    restart: unless-stopped
+      - default
+    deploy:
+      restart_policy:
+        condition: any
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
 
   redis:
     image: redis:7-alpine
     volumes:
       - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
     networks:
-      - base_net
-    restart: unless-stopped
+      - default
+    deploy:
+      restart_policy:
+        condition: any
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/mateusamarodasilva/base-brasileira-em-ciencia-da-computacao:main
     entrypoint: ["/bin/sh", "/app/entrypoint.sh"]
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
@@ -44,19 +52,21 @@ services:
       ELASTICSEARCH_PORT: "9200"
       ENVIRONMENT: production
       DEBUG: "false"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     networks:
-      - base_net
-    restart: unless-stopped
+      - default
+    deploy:
+      restart_policy:
+        condition: any
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
 
   celery_worker:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/mateusamarodasilva/base-brasileira-em-ciencia-da-computacao:main
     command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=2
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
@@ -66,31 +76,43 @@ services:
       ELASTICSEARCH_HOST: localhost
       ELASTICSEARCH_PORT: "9200"
       ENVIRONMENT: production
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
     networks:
-      - base_net
-    restart: unless-stopped
+      - default
+    deploy:
+      restart_policy:
+        condition: any
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "${PORT:-80}:80"
-    depends_on:
-      - backend
+    image: ghcr.io/mateusamarodasilva/base-brasileira-em-ciencia-da-computacao-frontend:main
     networks:
-      - base_net
-    restart: unless-stopped
+      - default
+      - ingress-network
+    deploy:
+      restart_policy:
+        condition: any
+      labels:
+        caddy: ${DOMAIN}
+        caddy.reverse_proxy: "{{upstreams 80}}"
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 32M
 
 volumes:
   postgres_data:
   redis_data:
 
 networks:
-  base_net:
-    driver: bridge
+  default:
+  ingress-network:
+    external: true
