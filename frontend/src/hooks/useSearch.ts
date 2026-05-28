@@ -22,6 +22,8 @@ const defaultFilters: SearchFilters = {
   year_from: null,
   year_to: null,
   language: null,
+  keyword: null,
+  has_doi: null,
 }
 
 export function useSearch() {

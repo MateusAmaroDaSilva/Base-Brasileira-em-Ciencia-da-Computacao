@@ -27,6 +27,8 @@ export async function searchArticles(params: SearchParams): Promise<SearchRespon
   if (filters.year_from) body.year_from = filters.year_from
   if (filters.year_to) body.year_to = filters.year_to
   if (filters.language) body.language = filters.language
+  if (filters.keyword) body.keyword = filters.keyword
+  if (filters.has_doi !== null) body.has_doi = filters.has_doi
 
   const { data } = await apiClient.post<SearchResponse>(endpoint, body)
   return data

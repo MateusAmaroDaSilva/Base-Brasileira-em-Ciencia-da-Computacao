@@ -32,9 +32,28 @@ export interface YearFacet {
   count: number
 }
 
+export interface LanguageFacet {
+  code: string
+  count: number
+}
+
+export interface KeywordFacet {
+  keyword: string
+  count: number
+}
+
+export interface DoiFacet {
+  value: string
+  label: string
+  count: number
+}
+
 export interface SearchFacets {
   by_magazine?: MagazineFacet[]
   by_year?: YearFacet[]
+  by_language?: LanguageFacet[]
+  by_keyword?: KeywordFacet[]
+  by_doi?: DoiFacet[]
   search_engine?: string
   total_results?: number
   limit?: number
@@ -54,4 +73,6 @@ export interface SearchFilters {
   year_from: number | null
   year_to: number | null
   language: string | null
+  keyword: string | null
+  has_doi: boolean | null
 }

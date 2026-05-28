@@ -90,6 +90,9 @@ export default function SearchPage() {
                 onFilterChange={setFilters}
                 magazineFacets={facets?.by_magazine}
                 yearFacets={facets?.by_year}
+                languageFacets={facets?.by_language}
+                keywordFacets={facets?.by_keyword}
+                doiFacets={facets?.by_doi}
               />
             )}
 

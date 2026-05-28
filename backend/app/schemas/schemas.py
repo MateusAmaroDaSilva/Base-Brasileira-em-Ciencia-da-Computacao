@@ -63,6 +63,8 @@ class SearchRequest(BaseModel):
     year_from: Optional[int] = None
     year_to: Optional[int] = None
     language: Optional[str] = None
+    keyword: Optional[str] = None
+    has_doi: Optional[bool] = None
     search_type: str = "simple"  # "simple" or "boolean"
     limit: int = 20
     offset: int = 0
