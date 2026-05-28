@@ -13,5 +13,6 @@ RUN pip install --upgrade pip setuptools wheel && \
     python -c "from pydantic_settings import BaseSettings; print('✓ pydantic_settings available')"
 
 COPY . .
+RUN chmod +x /app/entrypoint.sh
 
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
