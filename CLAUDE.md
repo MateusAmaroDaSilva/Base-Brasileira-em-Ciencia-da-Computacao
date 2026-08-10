@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Git Conventions
+
+- **Do NOT add `Co-Authored-By: Claude ...` trailers to commit messages.** Commits in this repo are authored solely by the repository owner. The same applies to `🤖 Generated with [Claude Code]` footers in PR bodies — omit them.
+- Commit author must be `Mateus Amaro <164428214+MateusAmaroDaSilva@users.noreply.github.com>` (already set as this repo's local `git config`).
+
 ## Project Overview
 
 **Base Brasileira em Ciência da Computação** — an academic article aggregation system for Brazilian Computer Science journals. It harvests metadata from 5 journals via OAI-PMH protocol, stores in PostgreSQL, indexes in Elasticsearch, and exposes a REST API consumed by a React frontend.
