@@ -45,8 +45,3 @@ export async function fetchSuggestions(q: string, limit = 5): Promise<string[]> 
   })
   return data.suggestions ?? []
 }
-
-function hasBoolean(query: string): boolean {
-  const tokens = query.split(/\s+/)
-  return tokens.some((t) => ['AND', 'OR', 'NOT'].includes(t)) || query.includes('"') || query.includes('(')
-}
