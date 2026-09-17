@@ -80,3 +80,6 @@ Dockerfile.test
 tmp/
 temp/
 *.tmp
+
+# Documentos do edital, formulario e resumo da IC (nao versionados)
+Sobre/
