@@ -37,7 +37,7 @@ export default function ArticleDetailPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-600 border-t-transparent" />
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand-600 border-t-transparent" />
       </div>
     )
   }
@@ -48,7 +48,7 @@ export default function ArticleDetailPage() {
         <p className="text-slate-600 text-lg">{error ?? 'Artigo não encontrado'}</p>
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium transition-colors"
+          className="flex items-center gap-2 text-brand-700 hover:text-brand-900 font-medium transition-colors"
         >
           <ArrowLeft className="w-4 h-4" /> Voltar
         </button>
@@ -69,9 +69,9 @@ export default function ArticleDetailPage() {
           Voltar à busca
         </button>
 
-        <article className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <article className="bg-white rounded-2xl shadow-card border border-slate-200 overflow-hidden">
           {/* Header */}
-          <div className="bg-gradient-to-br from-slate-900 to-blue-900 px-8 py-8 text-white">
+          <div className="bg-brand-900 px-5 sm:px-8 py-6 sm:py-8 text-white">
             {/* Magazine + year badges */}
             <div className="flex flex-wrap items-center gap-2 mb-4">
               {magazine && (
@@ -90,21 +90,21 @@ export default function ArticleDetailPage() {
               )}
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-bold leading-tight mb-4">
+            <h1 className="text-xl sm:text-3xl font-bold leading-tight mb-4 break-anywhere">
               {article.title}
             </h1>
 
             {/* Authors */}
             {article.authors && article.authors.length > 0 && (
-              <div className="flex items-start gap-2 text-blue-200">
+              <div className="flex items-start gap-2 text-brand-200">
                 <Users className="w-4 h-4 mt-0.5 shrink-0" />
-                <p className="text-sm">{article.authors.join('; ')}</p>
+                <p className="text-sm break-anywhere">{article.authors.join('; ')}</p>
               </div>
             )}
           </div>
 
           {/* Body */}
-          <div className="px-8 py-8 space-y-8">
+          <div className="px-5 sm:px-8 py-6 sm:py-8 space-y-7">
             {/* Abstract */}
             {article.abstract && (
               <section>
@@ -112,7 +112,7 @@ export default function ArticleDetailPage() {
                   Resumo
                 </h2>
                 <p className="text-slate-700 leading-relaxed text-base bg-slate-50 px-5 py-4
-                               rounded-xl border-l-4 border-blue-500">
+                               rounded-xl border-l-4 border-brand-500">
                   {article.abstract}
                 </p>
               </section>
@@ -127,7 +127,7 @@ export default function ArticleDetailPage() {
                 </h2>
                 <div className="flex flex-wrap gap-2">
                   {article.keywords.map((kw, i) => (
-                    <span key={i} className="text-sm bg-blue-50 text-blue-700 px-3 py-1 rounded-full border border-blue-100">
+                    <span key={i} className="text-sm bg-brand-50 text-brand-800 px-3 py-1 rounded-full border border-brand-100">
                       {kw}
                     </span>
                   ))}
@@ -138,7 +138,7 @@ export default function ArticleDetailPage() {
             {/* Metadata grid */}
             <section>
               <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">
-                Informações Bibliográficas
+                Informações bibliográficas
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {article.publication_date && (
@@ -168,7 +168,7 @@ export default function ArticleDetailPage() {
                         href={article.doi}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:text-blue-800 font-mono break-all transition-colors"
+                        className="text-sm text-brand-700 hover:text-brand-900 font-mono break-all transition-colors"
                       >
                         {article.doi}
                       </a>
@@ -192,11 +192,11 @@ export default function ArticleDetailPage() {
                   href={article.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white
-                             font-semibold px-6 py-3 rounded-xl shadow-sm transition-colors"
+                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700
+                             text-white font-semibold px-6 py-3 rounded-xl shadow-card transition-colors"
                 >
                   <ExternalLink className="w-4 h-4" />
-                  Acessar Artigo Completo
+                  Acessar artigo completo
                 </a>
               </div>
             )}

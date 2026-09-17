@@ -2,13 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-slate-50 text-slate-800 antialiased;
+  }
+
+  /* Titulos longos de artigos nao podem estourar a coluna no celular */
+  h1, h2, h3 {
+    overflow-wrap: break-word;
+  }
+
+  /* Foco visivel e consistente em toda a interface */
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-white rounded-md;
+  }
 }
 
-html, body, #root {
-  height: 100%;
-  width: 100%;
+@layer utilities {
+  /* Quebra palavras muito longas (DOIs, URLs, termos compostos) */
+  .break-anywhere {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
 }

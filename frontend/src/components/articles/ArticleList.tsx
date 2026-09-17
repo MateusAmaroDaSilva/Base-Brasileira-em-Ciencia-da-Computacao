@@ -11,12 +11,12 @@ interface ArticleListProps {
 
 function Skeleton() {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 p-5 animate-pulse">
-      <div className="h-3 bg-slate-200 rounded w-1/4 mb-3" />
-      <div className="h-5 bg-slate-200 rounded w-3/4 mb-2" />
-      <div className="h-4 bg-slate-200 rounded w-1/2 mb-4" />
-      <div className="h-3 bg-slate-200 rounded w-full mb-2" />
-      <div className="h-3 bg-slate-200 rounded w-5/6" />
+    <div className="bg-white rounded-xl border border-slate-200 shadow-card p-4 sm:p-5 animate-pulse">
+      <div className="h-3 bg-slate-200 rounded w-24 mb-3" />
+      <div className="h-4 bg-slate-200 rounded w-11/12 mb-2" />
+      <div className="h-4 bg-slate-200 rounded w-2/3 mb-4" />
+      <div className="h-3 bg-slate-100 rounded w-full mb-2" />
+      <div className="h-3 bg-slate-100 rounded w-5/6" />
     </div>
   )
 }
@@ -26,7 +26,7 @@ export default function ArticleList({ articles, magazines, loading, onArticleCli
 
   if (loading) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4" aria-busy="true" aria-live="polite">
         {Array.from({ length: 5 }).map((_, i) => (
           <Skeleton key={i} />
         ))}
@@ -36,16 +36,19 @@ export default function ArticleList({ articles, magazines, loading, onArticleCli
 
   if (articles.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-        <FileSearch className="w-14 h-14 mb-4 opacity-40" />
-        <p className="text-lg font-medium text-slate-500">Nenhum artigo encontrado</p>
-        <p className="text-sm mt-1">Tente outros termos ou remova alguns filtros</p>
+      <div className="bg-white rounded-xl border border-slate-200 shadow-card flex flex-col items-center
+                      justify-center text-center py-14 px-6">
+        <FileSearch className="w-12 h-12 text-slate-300 mb-3" aria-hidden="true" />
+        <p className="text-base font-semibold text-slate-700">Nenhum artigo encontrado</p>
+        <p className="text-sm text-slate-500 mt-1 max-w-sm">
+          Tente outras palavras, use termos mais gerais ou remova alguns filtros.
+        </p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3 sm:space-y-4">
       {articles.map((article) => (
         <ArticleCard
           key={article.id}
