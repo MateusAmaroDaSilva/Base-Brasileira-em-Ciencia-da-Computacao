@@ -1,5 +1,9 @@
 version: "3.8"
 
+# Stack de producao (Docker Swarm + Portainer + Caddy).
+# Nenhum servico publica porta: quem expoe para a internet e o Caddy, pela ingress-network.
+# Os valores das variaveis ficam no Portainer, nunca neste arquivo.
+
 services:
 
   postgres:
@@ -12,9 +16,21 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - default
+    healthcheck:
+      # so fica saudavel quando o banco aceita conexao de verdade
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     deploy:
+      replicas: 1
       restart_policy:
         condition: any
+      update_config:
+        # banco NUNCA pode ter duas instancias no mesmo volume: derruba antes de subir a nova
+        order: stop-first
+        failure_action: rollback
       resources:
         limits:
           cpus: '1'
@@ -29,9 +45,19 @@ services:
       - redis_data:/data
     networks:
       - default
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     deploy:
+      replicas: 1
       restart_policy:
         condition: any
+      update_config:
+        order: stop-first
+        failure_action: rollback
       resources:
         limits:
           cpus: '0.5'
@@ -41,22 +67,35 @@ services:
           memory: 32M
 
   backend:
-    image: ghcr.io/mateusamarodasilva/base-brasileira-em-ciencia-da-computacao:main
+    # versao fixa vinda do Portainer (TAG), para saber o que esta no ar e poder voltar atras
+    image: ghcr.io/mateusamarodasilva/base-brasileira-em-ciencia-da-computacao:${TAG}
     entrypoint: ["/bin/sh", "/app/entrypoint.sh"]
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://redis:6379
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/0
+      # sem Elasticsearch em producao: a busca cai automaticamente para SQL
       ELASTICSEARCH_HOST: localhost
       ELASTICSEARCH_PORT: "9200"
       ENVIRONMENT: production
       DEBUG: "false"
     networks:
       - default
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
     deploy:
+      replicas: 1
       restart_policy:
         condition: any
+      update_config:
+        # sobe a nova antes de derrubar a velha, e volta sozinho se a nova falhar
+        order: start-first
+        failure_action: rollback
       resources:
         limits:
           cpus: '1'
@@ -66,7 +105,7 @@ services:
           memory: 128M
 
   celery_worker:
-    image: ghcr.io/mateusamarodasilva/base-brasileira-em-ciencia-da-computacao:main
+    image: ghcr.io/mateusamarodasilva/base-brasileira-em-ciencia-da-computacao:${TAG}
     command: celery -A app.tasks.celery_app worker --loglevel=info --concurrency=2
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
@@ -79,8 +118,13 @@ services:
     networks:
       - default
     deploy:
+      # uma replica so: as sincronizacoes nao devem rodar em duplicidade
+      replicas: 1
       restart_policy:
         condition: any
+      update_config:
+        order: stop-first
+        failure_action: rollback
       resources:
         limits:
           cpus: '1'
@@ -90,14 +134,25 @@ services:
           memory: 128M
 
   frontend:
-    image: ghcr.io/mateusamarodasilva/base-brasileira-em-ciencia-da-computacao-frontend:main
+    image: ghcr.io/mateusamarodasilva/base-brasileira-em-ciencia-da-computacao-frontend:${TAG}
     networks:
       - default
       - ingress-network
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     deploy:
+      replicas: 1
       restart_policy:
         condition: any
+      update_config:
+        order: start-first
+        failure_action: rollback
       labels:
+        # unico servico exposto: o Caddy emite o certificado e encaminha para a porta 80 do nginx
         caddy: ${DOMAIN}
         caddy.reverse_proxy: "{{upstreams 80}}"
       resources:
