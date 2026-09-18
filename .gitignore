@@ -83,3 +83,9 @@ temp/
 
 # Documentos do edital, formulario e resumo da IC (nao versionados)
 Sobre/
+
+# Instrucoes internas de ferramentas de IA (mantidas apenas localmente)
+CLAUDE.md
+.github/copilot-instructions.md
+.claude/
+frontend/.github/copilot-instructions.md
