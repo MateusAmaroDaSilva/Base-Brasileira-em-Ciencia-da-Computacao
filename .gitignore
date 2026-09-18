@@ -89,3 +89,7 @@ CLAUDE.md
 .github/copilot-instructions.md
 .claude/
 frontend/.github/copilot-instructions.md
+
+# Banco local de desenvolvimento
+backend/bbcc.db
+*.db-journal

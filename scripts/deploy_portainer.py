@@ -7,7 +7,7 @@ declarado e o que esta rodando nunca se desencontram, e um "Update the stack"
 feito depois pela interface nao reverte a versao.
 
 Variaveis de ambiente esperadas:
-  PORTAINER_URL          ex.: https://portainer.labs.unimar.br
+  PORTAINER_URL          endereco do painel de deploy (vem dos segredos)
   PORTAINER_TOKEN        token de acesso criado no Portainer (X-API-Key)
   PORTAINER_STACK_ID     id numerico da stack
   PORTAINER_ENDPOINT_ID  id numerico do ambiente (endpoint) onde ela roda

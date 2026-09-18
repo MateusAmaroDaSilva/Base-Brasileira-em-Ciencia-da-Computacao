@@ -27,6 +27,24 @@ A **Base Brasileira em Ciência da Computação** é um repositório digital cen
 
 O projeto implementa uma arquitetura moderna de microserviços com backend em FastAPI, frontend em React, integração com protocolo OAI-PMH para coleta automatizada de artigos, e indexação via Elasticsearch para buscas performáticas em tempo real.
 
+### Sistema no ar
+
+O sistema está publicado em **https://bbcc.labs.unimar.br**, com artigos coletados das cinco
+revistas cadastradas.
+
+| Revista | Artigos |
+|---|---:|
+| RITA — Revista de Informática Teórica e Aplicada | 495 |
+| ISYS — Revista Brasileira de Sistemas de Informação | 327 |
+| RBIE — Revista Brasileira de Informática na Educação | 300 |
+| Ciência & Inovação | 129 |
+| Reviews em Engenharia de Software | 12 |
+| **Total** | **1.263** |
+
+A publicação de novas versões é automática a partir de uma tag de versão — ver
+[Documentacao/DEPLOY_PRODUCAO.md](Documentacao/DEPLOY_PRODUCAO.md). A identidade visual e as
+regras de interface estão em [Documentacao/IDENTIDADE_VISUAL.md](Documentacao/IDENTIDADE_VISUAL.md).
+
 ---
 
 ## Sobre o Projeto
