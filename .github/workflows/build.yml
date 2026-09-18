@@ -109,3 +109,42 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy (Portainer)
+    runs-on: ubuntu-latest
+    needs: [build-backend, build-frontend]
+    # So publica quando a versao e marcada com uma tag (ex.: v1.0.2)
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    env:
+      DEPLOY_URL: https://bbcc.labs.unimar.br
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Atualizar a stack no Portainer
+      env:
+        PORTAINER_URL: ${{ secrets.PORTAINER_URL }}
+        PORTAINER_TOKEN: ${{ secrets.PORTAINER_TOKEN }}
+        PORTAINER_STACK_ID: ${{ secrets.PORTAINER_STACK_ID }}
+        PORTAINER_ENDPOINT_ID: ${{ secrets.PORTAINER_ENDPOINT_ID }}
+      run: |
+        # A tag v1.0.2 vira a versao 1.0.2 das imagens
+        TAG="${GITHUB_REF_NAME#v}" python3 scripts/deploy_portainer.py
+
+    - name: Conferir se o site voltou no ar
+      run: |
+        echo "Aguardando $DEPLOY_URL responder..."
+        for i in $(seq 1 30); do
+          api=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$DEPLOY_URL/api/v1/admin/health" || true)
+          site=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$DEPLOY_URL/" || true)
+          if [ "$api" = "200" ] && [ "$site" = "200" ]; then
+            echo "No ar: API e site respondendo 200 (tentativa $i)."
+            exit 0
+          fi
+          echo "  tentativa $i/30 — api=$api site=$site"
+          sleep 10
+        done
+        echo "O site nao respondeu 200 em 5 minutos. Confira os logs no Portainer."
+        exit 1
