@@ -36,35 +36,35 @@ export default function ArticleCard({ article, magazine, onClick }: ArticleCardP
       role="button"
       tabIndex={0}
       aria-label={`Abrir artigo: ${article.title}`}
-      className="group bg-white rounded-xl border border-slate-200 shadow-card p-4 sm:p-5
+      className="group bg-white rounded-xl border border-brand-100 shadow-card p-4 sm:p-5
                  hover:border-brand-300 hover:shadow-card-hover transition-all cursor-pointer"
     >
       {/* Procedencia: revista e ano */}
       <div className="flex flex-wrap items-center gap-2 mb-2">
         {magazine && (
-          <span className="text-xs font-semibold text-brand-700 bg-brand-50 border border-brand-100
+          <span className="text-xs font-semibold text-verde-700 bg-verde-50 border border-verde-100
                            px-2 py-0.5 rounded">
             {magazine.name}
           </span>
         )}
-        {year && <span className="text-xs text-slate-500 tabular-nums">{year}</span>}
+        {year && <span className="text-xs text-tinta/70 tabular-nums">{year}</span>}
       </div>
 
       <h2
-        className="text-[0.95rem] sm:text-base font-semibold text-slate-900 leading-snug break-anywhere
+        className="text-[0.95rem] sm:text-base font-semibold text-brand-600 leading-snug break-anywhere
                    group-hover:text-brand-700 transition-colors line-clamp-3"
       >
         {article.title}
       </h2>
 
       {authors.length > 0 && (
-        <p className="mt-1.5 text-sm text-slate-500 break-anywhere line-clamp-2">
+        <p className="mt-1.5 text-sm text-tinta/70 break-anywhere line-clamp-2">
           {formatAuthors(authors)}
         </p>
       )}
 
       {abstract && (
-        <p className="mt-2.5 text-sm text-slate-600 leading-relaxed line-clamp-2 sm:line-clamp-3">
+        <p className="mt-2.5 text-sm text-tinta leading-relaxed line-clamp-2 sm:line-clamp-3">
           {abstract}
         </p>
       )}
@@ -75,7 +75,7 @@ export default function ArticleCard({ article, magazine, onClick }: ArticleCardP
             <li
               key={`${kw}-${i}`}
               /* no celular mostramos menos etiquetas para o cartao nao virar um bloco de texto */
-              className={`text-xs text-slate-600 bg-slate-100 px-2 py-0.5 rounded max-w-full truncate ${
+              className={`text-xs text-tinta bg-brand-50 px-2 py-0.5 rounded max-w-full truncate ${
                 i >= 3 ? 'hidden sm:inline-block' : ''
               }`}
             >
@@ -85,7 +85,7 @@ export default function ArticleCard({ article, magazine, onClick }: ArticleCardP
         </ul>
       )}
 
-      <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between gap-3">
+      <div className="mt-3 pt-3 border-t border-brand-50 flex items-center justify-between gap-3">
         <span className="inline-flex items-center gap-1 text-xs font-medium text-brand-700">
           Ver detalhes
           <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
@@ -97,7 +97,7 @@ export default function ArticleCard({ article, magazine, onClick }: ArticleCardP
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-brand-700 transition-colors"
+            className="inline-flex items-center gap-1 text-xs text-tinta/70 hover:text-brand-700 transition-colors"
           >
             <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" />
             Publicação original

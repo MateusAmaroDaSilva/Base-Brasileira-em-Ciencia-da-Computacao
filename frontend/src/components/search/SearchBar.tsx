@@ -67,7 +67,7 @@ export default function SearchBar({
         <div
           role="tablist"
           aria-label="Tipo de busca"
-          className="inline-flex p-0.5 bg-slate-100 rounded-lg border border-slate-200"
+          className="inline-flex p-0.5 bg-brand-50 rounded-lg border border-brand-100"
         >
           {(['simple', 'boolean'] as const).map((type) => (
             <button
@@ -79,7 +79,7 @@ export default function SearchBar({
               className={`px-3 sm:px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
                 searchType === type
                   ? 'bg-white text-brand-800 shadow-sm'
-                  : 'text-slate-500 hover:text-slate-700'
+                  : 'text-tinta/70 hover:text-tinta'
               }`}
             >
               {type === 'simple' ? 'Busca simples' : 'Busca booleana'}
@@ -92,7 +92,7 @@ export default function SearchBar({
             <button
               type="button"
               onClick={() => setShowHelp((v) => !v)}
-              className="flex items-center text-slate-400 hover:text-brand-600 transition-colors p-1"
+              className="flex items-center text-tinta/50 hover:text-brand-600 transition-colors p-1"
               aria-label="Ajuda sobre busca booleana"
               aria-expanded={showHelp}
             >
@@ -102,15 +102,15 @@ export default function SearchBar({
             {showHelp && (
               <div
                 className="absolute top-8 left-0 z-50 w-[min(20rem,calc(100vw-2rem))] bg-white rounded-xl
-                           shadow-xl border border-slate-200 p-4"
+                           shadow-xl border border-brand-100 p-4"
               >
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
+                <p className="text-xs font-semibold text-tinta/70 uppercase tracking-wide mb-3">
                   Como montar a busca
                 </p>
                 <ul className="space-y-2.5">
                   {BOOLEAN_EXAMPLES.map((ex) => (
                     <li key={ex.label}>
-                      <p className="text-xs text-slate-500 mb-0.5">{ex.label}</p>
+                      <p className="text-xs text-tinta/70 mb-0.5">{ex.label}</p>
                       <button
                         type="button"
                         onClick={() => {
@@ -136,7 +136,7 @@ export default function SearchBar({
       <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none"
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-tinta/50 pointer-events-none"
             aria-hidden="true"
           />
           <input
@@ -147,8 +147,8 @@ export default function SearchBar({
             placeholder={placeholder}
             aria-label="Termo de busca"
             /* text-base no celular evita o zoom automatico do iOS ao focar o campo */
-            className="w-full pl-11 pr-10 py-3 rounded-xl border border-slate-300 bg-white text-slate-800
-                       placeholder:text-slate-400 text-base sm:text-sm shadow-card
+            className="w-full pl-11 pr-10 py-3 rounded-xl border border-brand-200 bg-white text-brand-700
+                       placeholder:text-tinta/50 text-base sm:text-sm shadow-card
                        focus:border-brand-500 focus:ring-2 focus:ring-brand-100 focus:outline-none
                        transition-colors [&::-webkit-search-cancel-button]:hidden"
           />
@@ -157,7 +157,7 @@ export default function SearchBar({
               type="button"
               onClick={handleClear}
               aria-label="Limpar busca"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-tinta/50 hover:text-tinta
                          transition-colors p-0.5"
             >
               <X className="w-4 h-4" />
@@ -177,10 +177,10 @@ export default function SearchBar({
       </form>
 
       {searchType === 'boolean' && !compact && (
-        <p className="mt-2 text-xs text-slate-500 text-center">
-          Combine termos com <span className="font-semibold text-slate-700">AND</span>,{' '}
-          <span className="font-semibold text-slate-700">OR</span> e{' '}
-          <span className="font-semibold text-slate-700">NOT</span> em maiúsculas; use aspas para frases exatas.
+        <p className="mt-2 text-xs text-tinta/70 text-center">
+          Combine termos com <span className="font-semibold text-tinta">AND</span>,{' '}
+          <span className="font-semibold text-tinta">OR</span> e{' '}
+          <span className="font-semibold text-tinta">NOT</span> em maiúsculas; use aspas para frases exatas.
         </p>
       )}
     </div>

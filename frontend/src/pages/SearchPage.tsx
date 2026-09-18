@@ -72,17 +72,23 @@ export default function SearchPage() {
       <section
         className={
           hasSearched
-            ? 'bg-white border-b border-slate-200 py-4 sm:py-5'
-            : 'bg-white border-b border-slate-200 py-12 sm:py-20'
+            ? 'bg-white border-b border-brand-100 py-4 sm:py-5'
+            : 'bg-white border-b border-brand-100 py-10 sm:py-16'
         }
       >
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 lg:px-8">
           {!hasSearched && (
             <div className="text-center mb-8">
-              <h1 className="text-2xl sm:text-4xl font-bold text-slate-900 tracking-tight text-balance">
+              {/* Marca em destaque na abertura */}
+              <img
+                src="/bbcc-logo/svg/bbcc-vertical.svg"
+                alt="BBCC — Base Brasileira em Ciência da Computação"
+                className="mx-auto h-32 sm:h-40 w-auto mb-6"
+              />
+              <h1 className="text-2xl sm:text-4xl font-bold tracking-tight text-balance">
                 Pesquise a produção científica brasileira em Computação
               </h1>
-              <p className="mt-3 text-slate-500 text-base sm:text-lg max-w-2xl mx-auto">
+              <p className="mt-3 text-tinta/80 text-base sm:text-lg max-w-2xl mx-auto">
                 Artigos de periódicos nacionais reunidos em um único lugar, com busca por título,
                 autor, palavra-chave e resumo.
               </p>
@@ -124,17 +130,17 @@ export default function SearchPage() {
             <div className="min-w-0">
               {/* Cabecalho dos resultados */}
               <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-tinta">
                   {loading ? (
                     <span className="animate-pulse">Buscando…</span>
                   ) : (
                     <>
-                      <span className="font-semibold text-slate-900 tabular-nums">
+                      <span className="font-semibold text-brand-600 tabular-nums">
                         {total.toLocaleString('pt-BR')}
                       </span>{' '}
                       {total === 1 ? 'artigo encontrado' : 'artigos encontrados'}
                       {total > 0 && (
-                        <span className="text-slate-400">
+                        <span className="text-tinta/50">
                           {' '}· {offset + 1}–{Math.min(offset + itemsPerPage, total)}
                         </span>
                       )}
@@ -155,8 +161,8 @@ export default function SearchPage() {
                   <button
                     type="button"
                     onClick={() => setFiltersOpen(true)}
-                    className="lg:hidden inline-flex items-center gap-1.5 text-sm font-medium text-slate-700
-                               bg-white border border-slate-300 rounded-lg px-3 py-1.5 shadow-card
+                    className="lg:hidden inline-flex items-center gap-1.5 text-sm font-medium text-tinta
+                               bg-white border border-brand-200 rounded-lg px-3 py-1.5 shadow-card
                                hover:border-brand-300 transition-colors"
                   >
                     <SlidersHorizontal className="w-4 h-4" aria-hidden="true" />
@@ -188,7 +194,7 @@ export default function SearchPage() {
                   <button
                     onClick={() => handlePageChange(page - 1)}
                     disabled={page === 1}
-                    className="p-2 rounded-lg text-slate-500 hover:bg-slate-200 disabled:opacity-30
+                    className="p-2 rounded-lg text-tinta/70 hover:bg-brand-100 disabled:opacity-30
                                disabled:cursor-not-allowed transition-colors"
                     aria-label="Página anterior"
                   >
@@ -196,14 +202,14 @@ export default function SearchPage() {
                   </button>
 
                   {/* No celular basta saber em que pagina se esta */}
-                  <span className="sm:hidden text-sm text-slate-600 px-3 tabular-nums">
+                  <span className="sm:hidden text-sm text-tinta px-3 tabular-nums">
                     Página {page} de {totalPages}
                   </span>
 
                   <span className="hidden sm:flex items-center gap-1">
                     {pageNumbers().map((p, i) =>
                       p === '…' ? (
-                        <span key={`e-${i}`} className="px-2 text-slate-400 select-none">…</span>
+                        <span key={`e-${i}`} className="px-2 text-tinta/50 select-none">…</span>
                       ) : (
                         <button
                           key={p}
@@ -212,7 +218,7 @@ export default function SearchPage() {
                           className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors tabular-nums ${
                             page === p
                               ? 'bg-brand-600 text-white shadow-card'
-                              : 'text-slate-600 hover:bg-slate-200'
+                              : 'text-tinta hover:bg-brand-100'
                           }`}
                         >
                           {p}
@@ -224,7 +230,7 @@ export default function SearchPage() {
                   <button
                     onClick={() => handlePageChange(page + 1)}
                     disabled={page === totalPages}
-                    className="p-2 rounded-lg text-slate-500 hover:bg-slate-200 disabled:opacity-30
+                    className="p-2 rounded-lg text-tinta/70 hover:bg-brand-100 disabled:opacity-30
                                disabled:cursor-not-allowed transition-colors"
                     aria-label="Próxima página"
                   >
@@ -239,19 +245,28 @@ export default function SearchPage() {
         {/* Abertura: revistas disponiveis */}
         {!hasSearched && !loading && magazines.length > 0 && (
           <section className="max-w-4xl mx-auto mt-6">
-            <h2 className="text-center text-sm font-semibold text-slate-500 uppercase tracking-wide mb-4">
+            <h2 className="text-center text-sm font-semibold text-tinta/70 uppercase tracking-wide mb-4">
               Revistas indexadas
             </h2>
             <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {magazines.map((m) => (
                 <li
                   key={m.id}
-                  className="bg-white rounded-xl border border-slate-200 shadow-card px-4 py-3"
+                  className="bg-white rounded-xl border border-brand-100 shadow-card px-4 py-3
+                             flex items-start gap-3"
                 >
-                  <p className="text-sm font-semibold text-slate-800">{m.name}</p>
-                  {m.description && (
-                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{m.description}</p>
-                  )}
+                  <img
+                    src="/bbcc-logo/svg/bbcc-icone.svg"
+                    alt=""
+                    aria-hidden="true"
+                    className="h-8 w-8 shrink-0 mt-0.5"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-brand-600">{m.name}</p>
+                    {m.description && (
+                      <p className="text-xs text-tinta/70 mt-0.5 line-clamp-2">{m.description}</p>
+                    )}
+                  </div>
                 </li>
               ))}
             </ul>
@@ -263,11 +278,11 @@ export default function SearchPage() {
       {filtersOpen && (
         <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Filtros">
           <div
-            className="absolute inset-0 bg-slate-900/40"
+            className="absolute inset-0 bg-brand-900/50"
             onClick={() => setFiltersOpen(false)}
             aria-hidden="true"
           />
-          <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-slate-50 p-3 pb-6">
+          <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl bg-creme p-3 pb-6">
             {filterPanel(() => setFiltersOpen(false))}
             <button
               type="button"

@@ -8,17 +8,17 @@
   }
 
   body {
-    @apply bg-slate-50 text-slate-800 antialiased;
+    @apply bg-creme text-tinta antialiased;
   }
 
-  /* Titulos longos de artigos nao podem estourar a coluna no celular */
+  /* Titulos usam a serifada do logo */
   h1, h2, h3 {
+    @apply font-display text-brand-600;
     overflow-wrap: break-word;
   }
 
-  /* Foco visivel e consistente em toda a interface */
   :focus-visible {
-    @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-white rounded-md;
+    @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-creme rounded-md;
   }
 }
 

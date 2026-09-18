@@ -2,22 +2,46 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0f2540" />
+    <meta name="theme-color" content="#16325C" />
     <meta
       name="description"
       content="Busca unificada de artigos cientificos publicados em periodicos brasileiros de Ciencia da Computacao."
     />
+
+    <link rel="icon" href="/bbcc-logo/favicon/favicon.ico" sizes="any" />
+    <link rel="icon" href="/bbcc-logo/favicon/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/bbcc-logo/favicon/apple-touch-icon.png" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <title>Base Brasileira em Ciência da Computação</title>
+
+    <title>BBCC — Base Brasileira em Ciência da Computação</title>
+
+    <style>
+      /* Tela de carregamento: aparece antes do React montar e sai sozinha */
+      #bbcc-splash {
+        position: fixed;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        background: #faf8f3;
+        z-index: 60;
+      }
+      #bbcc-splash img {
+        width: 180px;
+        max-width: 60vw;
+      }
+    </style>
   </head>
   <body>
+    <div id="bbcc-splash">
+      <img src="/bbcc-logo/svg/animado/bbcc-carregando-texto.svg" alt="Carregando…" />
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

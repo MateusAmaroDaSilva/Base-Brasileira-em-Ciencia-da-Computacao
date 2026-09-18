@@ -11,3 +11,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     </BrowserRouter>
   </React.StrictMode>,
 )
+
+// Tira a tela de carregamento assim que a aplicacao esta montada
+document.getElementById('bbcc-splash')?.remove()

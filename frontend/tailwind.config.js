@@ -7,26 +7,48 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Azul institucional, sobrio: usado em cabecalho, acoes e destaques
+        // Paleta da marca BBCC. O tom 600 e o azul-marinho do logo (#16325C).
         brand: {
-          50: '#eef4fb',
-          100: '#d8e6f5',
-          200: '#b3cbe9',
-          300: '#82a8d8',
-          400: '#5183c2',
-          500: '#2f63a6',
-          600: '#1d4e89',
-          700: '#183f6e',
-          800: '#143154',
-          900: '#0f2540',
+          50: '#f2f5f9',
+          100: '#e1e8f1',
+          200: '#c3d1e3',
+          300: '#94aecb',
+          400: '#5c82ac',
+          500: '#2f5a8c',
+          600: '#16325c',
+          700: '#122a4d',
+          800: '#0e203c',
+          900: '#0a182d',
+        },
+        // Verde de destaque do logo
+        verde: {
+          50: '#eaf5f0',
+          100: '#d0e9de',
+          200: '#a5d6c1',
+          600: '#1e7f57',
+          700: '#186748',
+        },
+        // Amarelo de detalhe do logo
+        amarelo: {
+          100: '#fcf2d8',
+          200: '#f7e3aa',
+          400: '#e8b931',
+          500: '#c99f21',
+        },
+        creme: '#faf8f3',
+        tinta: {
+          DEFAULT: '#4a4a4a',
+          claro: '#d5ddea',
         },
       },
       fontFamily: {
-        sans: ['Inter', 'Segoe UI', 'system-ui', '-apple-system', 'sans-serif'],
+        // Fraunces e a fonte do "BBCC" no logo; IBM Plex Sans, a do subtitulo
+        display: ['Fraunces', 'Georgia', 'serif'],
+        sans: ['"IBM Plex Sans"', 'Segoe UI', 'system-ui', '-apple-system', 'sans-serif'],
       },
       boxShadow: {
-        card: '0 1px 2px 0 rgb(15 37 64 / 0.05), 0 1px 3px 0 rgb(15 37 64 / 0.06)',
-        'card-hover': '0 4px 12px -2px rgb(15 37 64 / 0.12)',
+        card: '0 1px 2px 0 rgb(22 50 92 / 0.06), 0 1px 3px 0 rgb(22 50 92 / 0.08)',
+        'card-hover': '0 6px 16px -4px rgb(22 50 92 / 0.16)',
       },
     },
   },

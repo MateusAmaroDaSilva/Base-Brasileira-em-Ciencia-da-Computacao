@@ -36,16 +36,16 @@ export default function ArticleDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-brand-600 border-t-transparent" />
+      <div className="min-h-screen bg-creme flex items-center justify-center">
+        <img src="/bbcc-logo/svg/animado/bbcc-carregando.svg" alt="Carregando…" className="w-24 h-24" />
       </div>
     )
   }
 
   if (error || !article) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-4 px-4">
-        <p className="text-slate-600 text-lg">{error ?? 'Artigo não encontrado'}</p>
+      <div className="min-h-screen bg-creme flex flex-col items-center justify-center gap-4 px-4">
+        <p className="text-tinta text-lg">{error ?? 'Artigo não encontrado'}</p>
         <button
           onClick={() => navigate(-1)}
           className="flex items-center gap-2 text-brand-700 hover:text-brand-900 font-medium transition-colors"
@@ -57,21 +57,21 @@ export default function ArticleDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-creme">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Back button */}
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-slate-500 hover:text-slate-800 text-sm font-medium
+          className="flex items-center gap-2 text-tinta/70 hover:text-brand-700 text-sm font-medium
                      transition-colors mb-6"
         >
           <ArrowLeft className="w-4 h-4" />
           Voltar à busca
         </button>
 
-        <article className="bg-white rounded-2xl shadow-card border border-slate-200 overflow-hidden">
+        <article className="bg-white rounded-2xl shadow-card border border-brand-100 overflow-hidden">
           {/* Header */}
-          <div className="bg-brand-900 px-5 sm:px-8 py-6 sm:py-8 text-white">
+          <div className="bg-brand-600 px-5 sm:px-8 py-6 sm:py-8 text-white">
             {/* Magazine + year badges */}
             <div className="flex flex-wrap items-center gap-2 mb-4">
               {magazine && (
@@ -90,13 +90,13 @@ export default function ArticleDetailPage() {
               )}
             </div>
 
-            <h1 className="text-xl sm:text-3xl font-bold leading-tight mb-4 break-anywhere">
+            <h1 className="text-xl sm:text-3xl font-bold leading-tight mb-4 break-anywhere text-white">
               {article.title}
             </h1>
 
             {/* Authors */}
             {article.authors && article.authors.length > 0 && (
-              <div className="flex items-start gap-2 text-brand-200">
+              <div className="flex items-start gap-2 text-tinta-claro">
                 <Users className="w-4 h-4 mt-0.5 shrink-0" />
                 <p className="text-sm break-anywhere">{article.authors.join('; ')}</p>
               </div>
@@ -108,10 +108,10 @@ export default function ArticleDetailPage() {
             {/* Abstract */}
             {article.abstract && (
               <section>
-                <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">
+                <h2 className="text-xs font-semibold text-tinta/50 uppercase tracking-widest mb-3">
                   Resumo
                 </h2>
-                <p className="text-slate-700 leading-relaxed text-base bg-slate-50 px-5 py-4
+                <p className="text-tinta leading-relaxed text-base bg-creme px-5 py-4
                                rounded-xl border-l-4 border-brand-500">
                   {article.abstract}
                 </p>
@@ -121,7 +121,7 @@ export default function ArticleDetailPage() {
             {/* Keywords */}
             {article.keywords && article.keywords.length > 0 && (
               <section>
-                <h2 className="flex items-center gap-2 text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">
+                <h2 className="flex items-center gap-2 text-xs font-semibold text-tinta/50 uppercase tracking-widest mb-3">
                   <Tag className="w-3.5 h-3.5" />
                   Palavras-chave
                 </h2>
@@ -137,33 +137,33 @@ export default function ArticleDetailPage() {
 
             {/* Metadata grid */}
             <section>
-              <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">
+              <h2 className="text-xs font-semibold text-tinta/50 uppercase tracking-widest mb-3">
                 Informações bibliográficas
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {article.publication_date && (
-                  <div className="flex items-start gap-3 bg-slate-50 rounded-xl px-4 py-3">
-                    <Calendar className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                  <div className="flex items-start gap-3 bg-creme rounded-xl px-4 py-3">
+                    <Calendar className="w-4 h-4 text-tinta/50 mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-xs text-slate-400 mb-0.5">Data de publicação</p>
-                      <p className="text-sm text-slate-700 font-medium">{formatDate(article.publication_date)}</p>
+                      <p className="text-xs text-tinta/50 mb-0.5">Data de publicação</p>
+                      <p className="text-sm text-tinta font-medium">{formatDate(article.publication_date)}</p>
                     </div>
                   </div>
                 )}
                 {magazine && (
-                  <div className="flex items-start gap-3 bg-slate-50 rounded-xl px-4 py-3">
-                    <BookOpen className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                  <div className="flex items-start gap-3 bg-creme rounded-xl px-4 py-3">
+                    <BookOpen className="w-4 h-4 text-tinta/50 mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-xs text-slate-400 mb-0.5">Revista</p>
-                      <p className="text-sm text-slate-700 font-medium">{magazine.name}</p>
+                      <p className="text-xs text-tinta/50 mb-0.5">Revista</p>
+                      <p className="text-sm text-tinta font-medium">{magazine.name}</p>
                     </div>
                   </div>
                 )}
                 {article.doi && (
-                  <div className="flex items-start gap-3 bg-slate-50 rounded-xl px-4 py-3">
-                    <Hash className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                  <div className="flex items-start gap-3 bg-creme rounded-xl px-4 py-3">
+                    <Hash className="w-4 h-4 text-tinta/50 mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-xs text-slate-400 mb-0.5">DOI</p>
+                      <p className="text-xs text-tinta/50 mb-0.5">DOI</p>
                       <a
                         href={article.doi}
                         target="_blank"
@@ -175,11 +175,11 @@ export default function ArticleDetailPage() {
                     </div>
                   </div>
                 )}
-                <div className="flex items-start gap-3 bg-slate-50 rounded-xl px-4 py-3">
-                  <Globe className="w-4 h-4 text-slate-400 mt-0.5 shrink-0" />
+                <div className="flex items-start gap-3 bg-creme rounded-xl px-4 py-3">
+                  <Globe className="w-4 h-4 text-tinta/50 mt-0.5 shrink-0" />
                   <div>
-                    <p className="text-xs text-slate-400 mb-0.5">Identificador OAI</p>
-                    <p className="text-xs text-slate-600 font-mono break-all">{article.oai_identifier}</p>
+                    <p className="text-xs text-tinta/50 mb-0.5">Identificador OAI</p>
+                    <p className="text-xs text-tinta font-mono break-all">{article.oai_identifier}</p>
                   </div>
                 </div>
               </div>

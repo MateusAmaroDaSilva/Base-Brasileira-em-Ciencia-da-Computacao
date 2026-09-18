@@ -75,17 +75,17 @@ function Section({
 }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
-    <div className="border-b border-slate-100 last:border-0">
+    <div className="border-b border-brand-50 last:border-0">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         className="w-full flex items-center justify-between py-3 px-4 text-sm font-semibold
-                   text-slate-700 hover:text-slate-900 transition-colors"
+                   text-tinta hover:text-brand-600 transition-colors"
       >
         {title}
         <ChevronDown
-          className={`w-4 h-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 text-tinta/50 transition-transform ${open ? 'rotate-180' : ''}`}
           aria-hidden="true"
         />
       </button>
@@ -114,12 +114,12 @@ function FacetButton({
                   flex items-center justify-between gap-2 ${
                     active
                       ? 'bg-brand-50 text-brand-800 font-medium'
-                      : 'text-slate-600 hover:bg-slate-50'
+                      : 'text-tinta hover:bg-creme'
                   }`}
     >
       <span className="truncate">{label}</span>
       {count !== undefined && (
-        <span className="shrink-0 text-xs text-slate-400 tabular-nums">{count}</span>
+        <span className="shrink-0 text-xs text-tinta/50 tabular-nums">{count}</span>
       )}
     </button>
   )
@@ -196,7 +196,7 @@ export function FilterChips({
       <button
         type="button"
         onClick={() => onFilterChange({ ...EMPTY_FILTERS })}
-        className="text-xs text-slate-500 hover:text-slate-800 underline underline-offset-2 transition-colors"
+        className="text-xs text-tinta/70 hover:text-brand-700 underline underline-offset-2 transition-colors"
       >
         Limpar tudo
       </button>
@@ -232,11 +232,11 @@ export default function MetadataSidebar({
       : magazines
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-card overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-200">
+    <div className="bg-white rounded-xl border border-brand-100 shadow-card overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-3 bg-creme border-b border-brand-100">
         <div className="flex items-center gap-2">
-          <SlidersHorizontal className="w-4 h-4 text-slate-500" aria-hidden="true" />
-          <span className="text-sm font-semibold text-slate-700">Refinar busca</span>
+          <SlidersHorizontal className="w-4 h-4 text-tinta/70" aria-hidden="true" />
+          <span className="text-sm font-semibold text-tinta">Refinar busca</span>
           {activeCount > 0 && (
             <span className="text-xs font-semibold text-white bg-brand-600 rounded-full px-1.5 py-0.5 tabular-nums">
               {activeCount}
@@ -249,7 +249,7 @@ export default function MetadataSidebar({
             <button
               type="button"
               onClick={() => onFilterChange({ ...EMPTY_FILTERS })}
-              className="text-xs text-slate-500 hover:text-slate-800 font-medium transition-colors"
+              className="text-xs text-tinta/70 hover:text-brand-700 font-medium transition-colors"
             >
               Limpar
             </button>
@@ -259,7 +259,7 @@ export default function MetadataSidebar({
               type="button"
               onClick={onClose}
               aria-label="Fechar filtros"
-              className="text-slate-400 hover:text-slate-700 transition-colors lg:hidden"
+              className="text-tinta/50 hover:text-tinta transition-colors lg:hidden"
             >
               <X className="w-5 h-5" />
             </button>
@@ -331,7 +331,7 @@ export default function MetadataSidebar({
 
       <Section title="Ano de publicação">
         {yearFacets.length > 0 && (
-          <p className="text-xs text-slate-400 mb-2 tabular-nums">
+          <p className="text-xs text-tinta/50 mb-2 tabular-nums">
             Resultados entre {minYear} e {maxYear}
           </p>
         )}
@@ -350,10 +350,10 @@ export default function MetadataSidebar({
                 year_from: e.target.value ? parseInt(e.target.value) : null,
               })
             }
-            className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg text-slate-700
+            className="w-full px-2 py-1.5 text-sm border border-brand-100 rounded-lg text-tinta
                        focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
           />
-          <span className="text-slate-400 text-xs shrink-0">até</span>
+          <span className="text-tinta/50 text-xs shrink-0">até</span>
           <input
             type="number"
             inputMode="numeric"
@@ -368,7 +368,7 @@ export default function MetadataSidebar({
                 year_to: e.target.value ? parseInt(e.target.value) : null,
               })
             }
-            className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-lg text-slate-700
+            className="w-full px-2 py-1.5 text-sm border border-brand-100 rounded-lg text-tinta
                        focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
           />
         </div>

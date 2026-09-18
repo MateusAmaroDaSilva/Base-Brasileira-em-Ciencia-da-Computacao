@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120.0 120.0" width="120" height="120" role="img" aria-label="BBCC — Base Brasileira em Ciência da Computação"><title>BBCC — Base Brasileira em Ciência da Computação</title>
+<circle cx="60" cy="60" r="46" fill="none" stroke="#FFFFFF" stroke-width="2" opacity="0.2"/>
+<g stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round">
+<line x1="60" y1="14" x2="60" y2="32"/>
+<line x1="99.8" y1="37" x2="84.2" y2="46"/>
+<line x1="99.8" y1="83" x2="84.2" y2="74"/>
+<line x1="60" y1="106" x2="60" y2="88"/>
+<line x1="20.2" y1="83" x2="35.8" y2="74"/>
+<line x1="20.2" y1="37" x2="35.8" y2="46"/>
+</g>
+<circle cx="60" cy="14" r="7" fill="#FFFFFF"/>
+<circle cx="99.8" cy="37" r="7" fill="#FFFFFF"/>
+<circle cx="99.8" cy="83" r="7" fill="#FFFFFF"/>
+<circle cx="60" cy="106" r="7" fill="#FFFFFF"/>
+<circle cx="20.2" cy="83" r="7" fill="#FFFFFF"/>
+<circle cx="20.2" cy="37" r="7" fill="#FFFFFF"/>
+<path d="M33,60A27,27 0 1 0 87,60A27,27 0 1 0 33,60ZM45.92,49.12H49.12A1.28,1.28 0 0 1 50.40,50.40V71.52A1.28,1.28 0 0 1 49.12,72.80H45.92A1.28,1.28 0 0 1 44.64,71.52V50.40A1.28,1.28 0 0 1 45.92,49.12ZM52.96,45.28H56.16A1.28,1.28 0 0 1 57.44,46.56V71.52A1.28,1.28 0 0 1 56.16,72.80H52.96A1.28,1.28 0 0 1 51.68,71.52V46.56A1.28,1.28 0 0 1 52.96,45.28ZM60.00,51.68H63.20A1.28,1.28 0 0 1 64.48,52.96V71.52A1.28,1.28 0 0 1 63.20,72.80H60.00A1.28,1.28 0 0 1 58.72,71.52V52.96A1.28,1.28 0 0 1 60.00,51.68ZM71.08,47.19L76.71,48.39L71.52,72.80L65.89,71.60ZM43.84,72.80H76.16A1.12,1.12 0 0 1 77.28,73.92V73.92A1.12,1.12 0 0 1 76.16,75.04H43.84A1.12,1.12 0 0 1 42.72,73.92V73.92A1.12,1.12 0 0 1 43.84,72.80Z" fill="#FFFFFF" fill-rule="evenodd"/>
+</svg>
