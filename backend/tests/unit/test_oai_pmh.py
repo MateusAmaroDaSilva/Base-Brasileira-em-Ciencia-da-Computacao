@@ -386,3 +386,97 @@ class TestOAIPMHHelpers:
         result = extractor._parse_date("15/01/2026")
         assert isinstance(result, datetime)
         assert result.year == 2026
+
+
+REAL_RECORD = f"""
+<record xmlns="{OAI_NS}">
+  <header><identifier>oai:journals-sol.sbc.org.br:article/2069</identifier><datestamp>2021-10-03T19:39:21Z</datestamp></header>
+  <metadata>
+    <oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" xmlns:dc="{DC_NS}">
+      <dc:title>Analyzing novices' fun</dc:title>
+      <dc:creator>Vahldick, Adilson</dc:creator>
+      <dc:creator>Marcelino, Maria José</dc:creator>
+      <dc:subject>serious games</dc:subject>
+      <dc:subject>Serious Games</dc:subject>
+      <dc:subject>blocks-based approach</dc:subject>
+      <dc:publisher>Sociedade Brasileira de Computação</dc:publisher>
+      <dc:date>2021-12-01</dc:date>
+      <dc:type>info:eu-repo/semantics/article</dc:type>
+      <dc:type>info:eu-repo/semantics/publishedVersion</dc:type>
+      <dc:identifier>https://journals-sol.sbc.org.br/index.php/rbie/article/view/2069</dc:identifier>
+      <dc:identifier>10.5753/rbie.2021.2069</dc:identifier>
+      <dc:source>Revista Brasileira de Informática na Educação; Vol. 29 (2021); 1337-1355</dc:source>
+      <dc:source>2317-6121</dc:source>
+      <dc:source>1414-5685</dc:source>
+      <dc:language>eng</dc:language>
+      <dc:rights>Copyright (c) 2021 Adilson Vahldick</dc:rights>
+      <dc:rights>https://creativecommons.org/licenses/by-nc-nd/4.0</dc:rights>
+    </oai_dc:dc>
+  </metadata>
+</record>"""
+
+
+def _parse(record_xml: str):
+    from app.extractors.oai_pmh import OAIPMHExtractor
+
+    doc = etree.fromstring(f"<root xmlns='{OAI_NS}'>{record_xml}</root>")
+    return OAIPMHExtractor("http://test.com/oai")._parse_record(doc.find(f"{{{OAI_NS}}}record"))
+
+
+@pytest.mark.unit
+class TestRealWorldRecord:
+    def test_date_doi_and_url(self):
+        a = _parse(REAL_RECORD)
+        assert a["publication_date"] == datetime(2021, 12, 1)
+        assert a["doi"] == "10.5753/rbie.2021.2069"
+        assert a["url"] == "https://journals-sol.sbc.org.br/index.php/rbie/article/view/2069"
+
+    def test_volume_issue_pages_and_issn(self):
+        a = _parse(REAL_RECORD)
+        assert (a["volume"], a["issue"], a["pages"]) == ("29", None, "1337-1355")
+        assert a["issn"] == "2317-6121"
+
+    def test_issue_formats(self):
+        from app.extractors.oai_pmh import OAIPMHExtractor
+
+        parse = OAIPMHExtractor._parse_source
+        assert parse(["SBC Computing Reviews; Vol. 1 No. 1 (2021)"]) == ("1", "1", None)
+        assert parse(["Revista de Informática; v. 14 n. 2 (2007); 9-27"]) == ("14", "2", "9-27")
+        assert parse(["2317-6121"]) == (None, None, None)
+
+    def test_keywords_are_deduplicated_ignoring_case(self):
+        assert _parse(REAL_RECORD)["keywords"] == ["serious games", "blocks-based approach"]
+
+    def test_type_license_and_open_access(self):
+        a = _parse(REAL_RECORD)
+        assert a["article_type"] == "artigo"
+        assert a["license"] == "https://creativecommons.org/licenses/by-nc-nd/4.0"
+        assert a["open_access"] is True
+        assert a["publisher"] == "Sociedade Brasileira de Computação"
+
+    def test_open_access_is_unknown_without_evidence(self):
+        record = REAL_RECORD.replace("https://creativecommons.org/licenses/by-nc-nd/4.0", "Todos os direitos reservados")
+        a = _parse(record)
+        assert a["open_access"] is None
+        assert a["license"] is None
+
+    @pytest.mark.parametrize(
+        "dc_type,expected",
+        [
+            ("info:eu-repo/semantics/conferenceObject", "artigo_conferencia"),
+            ("info:eu-repo/semantics/masterThesis", "dissertacao"),
+            ("info:eu-repo/semantics/doctoralThesis", "tese"),
+            ("info:eu-repo/semantics/bookPart", "capitulo_livro"),
+            ("info:eu-repo/semantics/article", "artigo"),
+            ("algo desconhecido", "artigo"),
+        ],
+    )
+    def test_publication_types(self, dc_type, expected):
+        record = REAL_RECORD.replace("info:eu-repo/semantics/article", dc_type)
+        assert _parse(record)["article_type"] == expected
+
+    def test_registration_timestamp_is_not_the_publication_date(self):
+        record = REAL_RECORD.replace(
+            "<dc:date>2021-12-01</dc:date>", "<dc:date>2021-10-03T19:39:21Z</dc:date><dc:date>2021-12-01</dc:date>"
+        )
+        assert _parse(record)["publication_date"] == datetime(2021, 12, 1)

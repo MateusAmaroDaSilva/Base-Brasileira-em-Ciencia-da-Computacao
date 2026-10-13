@@ -23,6 +23,9 @@ except Exception:
   sleep 3
 done
 
+echo "Aplicando migracoes do banco..."
+python -m app.core.migrate
+
 echo "Inicializando banco de dados..."
 python -c "from app.core.init_db import init_db; init_db()"
 

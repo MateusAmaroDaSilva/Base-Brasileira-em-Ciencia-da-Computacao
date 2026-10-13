@@ -50,6 +50,15 @@ class ArticleResponse(ArticleBase):
     publication_date: Optional[datetime] = None
     url: Optional[str] = None
     doi: Optional[str] = None
+    issn: Optional[str] = None
+    volume: Optional[str] = None
+    issue: Optional[str] = None
+    pages: Optional[str] = None
+    language: Optional[str] = None
+    article_type: str = "artigo"
+    publisher: Optional[str] = None
+    license: Optional[str] = None
+    open_access: Optional[bool] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
