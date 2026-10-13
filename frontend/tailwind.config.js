@@ -36,6 +36,8 @@ export default {
           500: '#c99f21',
         },
         creme: '#faf8f3',
+        // Bordas e divisorias do guia da marca
+        linha: '#e4e1d8',
         tinta: {
           DEFAULT: '#4a4a4a',
           claro: '#d5ddea',

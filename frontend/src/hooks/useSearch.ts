@@ -2,7 +2,7 @@ import { useState, useCallback, useRef } from 'react'
 import { searchArticles } from '../api/articles'
 import type { Article, SearchFilters, SearchFacets, SearchType } from '../types'
 
-const ITEMS_PER_PAGE = 20
+const DEFAULT_ITEMS_PER_PAGE = 10
 
 export interface SearchState {
   articles: Article[]
@@ -15,6 +15,7 @@ export interface SearchState {
   searchType: SearchType
   filters: SearchFilters
   hasSearched: boolean
+  limit: number
 }
 
 const defaultFilters: SearchFilters = {
@@ -38,12 +39,13 @@ export function useSearch() {
     searchType: 'simple',
     filters: defaultFilters,
     hasSearched: false,
+    limit: DEFAULT_ITEMS_PER_PAGE,
   })
 
   const abortRef = useRef<AbortController | null>(null)
 
   const doSearch = useCallback(
-    async (query: string, searchType: SearchType, filters: SearchFilters, page: number) => {
+    async (query: string, searchType: SearchType, filters: SearchFilters, page: number, limit: number) => {
       if (abortRef.current) abortRef.current.abort()
       abortRef.current = new AbortController()
 
@@ -55,7 +57,7 @@ export function useSearch() {
           searchType,
           filters,
           page,
-          limit: ITEMS_PER_PAGE,
+          limit,
         })
 
         setState((prev) => ({
@@ -102,39 +104,48 @@ export function useSearch() {
       const type = searchType ?? state.searchType
       const f = filters ?? state.filters
       setState((prev) => ({ ...prev, query, searchType: type, filters: f, page: 1 }))
-      doSearch(query, type, f, 1)
+      doSearch(query, type, f, 1, state.limit)
     },
-    [state.searchType, state.filters, doSearch],
+    [state.searchType, state.filters, state.limit, doSearch],
   )
 
   const setPage = useCallback(
     (page: number) => {
-      doSearch(state.query, state.searchType, state.filters, page)
+      doSearch(state.query, state.searchType, state.filters, page, state.limit)
     },
-    [state.query, state.searchType, state.filters, doSearch],
+    [state.query, state.searchType, state.filters, state.limit, doSearch],
   )
 
   const setFilters = useCallback(
     (filters: SearchFilters) => {
       setState((prev) => ({ ...prev, filters, page: 1 }))
-      doSearch(state.query, state.searchType, filters, 1)
+      doSearch(state.query, state.searchType, filters, 1, state.limit)
     },
-    [state.query, state.searchType, doSearch],
+    [state.query, state.searchType, state.limit, doSearch],
+  )
+
+  const setLimit = useCallback(
+    (limit: number) => {
+      setState((prev) => ({ ...prev, limit, page: 1 }))
+      doSearch(state.query, state.searchType, state.filters, 1, limit)
+    },
+    [state.query, state.searchType, state.filters, doSearch],
   )
 
   const setSearchType = useCallback((searchType: SearchType) => {
     setState((prev) => ({ ...prev, searchType }))
   }, [])
 
-  const totalPages = Math.ceil(state.total / ITEMS_PER_PAGE)
+  const totalPages = Math.ceil(state.total / state.limit)
 
   return {
     ...state,
     totalPages,
-    itemsPerPage: ITEMS_PER_PAGE,
+    itemsPerPage: state.limit,
     search,
     setPage,
     setFilters,
     setSearchType,
+    setLimit,
   }
 }

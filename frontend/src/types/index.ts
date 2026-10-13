@@ -76,3 +76,45 @@ export interface SearchFilters {
   keyword: string | null
   has_doi: boolean | null
 }
+
+export interface User {
+  id: number
+  name: string
+  email: string
+  institution?: string | null
+  areas: string[]
+  save_history: boolean
+  saved_count: number
+  avatar_url?: string | null
+  created_at: string
+}
+
+export interface AuthResponse {
+  access_token: string
+  user: User
+}
+
+export interface HistoryEntry {
+  id: number
+  query: string
+  kind: 'publicacoes' | 'autores' | 'revistas'
+  area?: string | null
+  result_count?: number | null
+  created_at: string
+}
+
+export interface TopSearch {
+  query: string
+  count: number
+}
+
+export interface SavedArticle {
+  saved_at: string
+  article: Article
+}
+
+export interface Alert {
+  id: number
+  query: string
+  created_at: string
+}
