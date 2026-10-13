@@ -156,3 +156,54 @@ class TestElasticsearchClient:
         
         assert body['from'] == 20
         assert body['size'] == 10
+
+    def test_document_has_filterable_fields(self, es_client):
+        doc = es_client._build_document({
+            'id': 7,
+            'title': 'T',
+            'keywords': [' Machine Learning ', 'IA', ''],
+            'language': 'por',
+            'doi': 'https://doi.org/10.1/x',
+        })
+
+        assert doc['keywords_exact'] == ['machine learning', 'ia']
+        assert doc['language'] == 'por'
+        assert doc['doi'] == 'https://doi.org/10.1/x'
+
+    def test_search_applies_all_filters_as_post_filter(self, es_client):
+        es_client.es = MagicMock()
+        es_client.es.search.return_value = {'hits': {'total': {'value': 0}, 'hits': []}}
+
+        es_client.search(query='redes', language='pt', keyword='IA', has_doi=False, magazine_id=2)
+
+        body = es_client.es.search.call_args[1]['body']
+        post = body['post_filter']['bool']['filter']
+        assert {'term': {'language': 'pt'}} in post
+        assert {'term': {'keywords_exact': 'ia'}} in post
+        assert {'term': {'magazine_id': 2}} in post
+        assert {'bool': {'must_not': {'exists': {'field': 'doi'}}}} in post
+
+        # cada faceta ignora o proprio filtro, como na busca SQL
+        lang_filters = body['aggs']['by_language']['filter']['bool']['filter']
+        assert {'term': {'language': 'pt'}} not in lang_filters
+        assert {'term': {'magazine_id': 2}} in lang_filters
+
+    def test_search_parses_all_facets(self, es_client):
+        es_client.es = MagicMock()
+        es_client.es.search.return_value = {
+            'hits': {'total': {'value': 3}, 'hits': []},
+            'aggregations': {
+                'by_magazine': {'values': {'buckets': [{'key': 1, 'doc_count': 3}]}},
+                'by_year': {'values': {'buckets': [{'key_as_string': '2024', 'doc_count': 3}]}},
+                'by_language': {'values': {'buckets': [{'key': 'pt', 'doc_count': 2}]}},
+                'by_keyword': {'values': {'buckets': [{'key': 'ia', 'doc_count': 1}]}},
+                'by_doi': {'values': {'buckets': {'com_doi': {'doc_count': 1}, 'sem_doi': {'doc_count': 2}}}},
+            },
+        }
+
+        facets = es_client.search(query='x')['facets']
+
+        assert facets['by_magazine'] == [{'id': 1, 'count': 3}]
+        assert facets['by_language'] == [{'code': 'pt', 'count': 2}]
+        assert facets['by_keyword'] == [{'keyword': 'ia', 'count': 1}]
+        assert [d['count'] for d in facets['by_doi']] == [1, 2]

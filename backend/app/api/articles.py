@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc, func, extract, cast, Text
 from app.core.database import get_db, Article
 from app.schemas.schemas import ArticleResponse, SearchRequest, SearchResponse
-from app.core.elasticsearch_client import get_elasticsearch_client
+from app.core.elasticsearch_client import get_elasticsearch_client, article_to_index_dict
 from typing import List
 
 
@@ -220,6 +220,8 @@ def search_elasticsearch(search: SearchRequest, db: Session = Depends(get_db)):
         year_to=year_to,
         language=search.language,
         search_type=search.search_type,
+        keyword=search.keyword,
+        has_doi=search.has_doi,
     )
 
     if not es_results.get("available", True):
@@ -234,6 +236,8 @@ def search_elasticsearch(search: SearchRequest, db: Session = Depends(get_db)):
             sql_query = sql_query.filter(Article.publication_date >= date(year_from, 1, 1))
         if year_to:
             sql_query = sql_query.filter(Article.publication_date <= date(year_to, 12, 31))
+        if search.language:
+            sql_query = sql_query.filter(Article.language == search.language)
         if search.keyword:
             sql_query = sql_query.filter(cast(Article.keywords, Text).ilike(f'%"{search.keyword}"%'))
         if search.has_doi is True:
@@ -259,7 +263,9 @@ def search_elasticsearch(search: SearchRequest, db: Session = Depends(get_db)):
     article_ids = [int(doc.get("article_id")) for doc in es_results.get("articles", [])]
     articles = []
     if article_ids:
-        articles = db.query(Article).filter(Article.id.in_(article_ids)).all()
+        # o IN do SQL nao preserva a ordem: reordena conforme o Elasticsearch devolveu
+        by_id = {a.id: a for a in db.query(Article).filter(Article.id.in_(article_ids)).all()}
+        articles = [by_id[i] for i in article_ids if i in by_id]
 
     facets = es_results.get("facets", {})
     facets["search_engine"] = "elasticsearch"
@@ -283,26 +289,11 @@ def reindex_articles(db: Session = Depends(get_db)):
         es_client = get_elasticsearch_client()
         es_client.recreate_index()
         articles = db.query(Article).all()
-        articles_data = [
-            {
-                "id": a.id,
-                "title": a.title,
-                "abstract": a.abstract or "",
-                "authors": a.authors or [],
-                "keywords": a.keywords or [],
-                "magazine_id": a.magazine_id,
-                "publication_date": a.publication_date,
-                "url": a.url,
-                "oai_identifier": a.oai_identifier,
-                "created_at": a.created_at,
-                "updated_at": a.updated_at,
-            }
-            for a in articles
-        ]
+        articles_data = [article_to_index_dict(a) for a in articles]
         es_client.bulk_index_articles(articles_data)
         return {
             "status": "success",
-            "message": f"Indexados {len(articles_data)} artículos no Elasticsearch",
+            "message": f"Indexados {len(articles_data)} artigos no Elasticsearch",
             "total_indexed": len(articles_data),
         }
     except Exception as e:

@@ -22,16 +22,18 @@ class TestArticlesEndpoints:
     def test_search_articles_invalid_body(self, test_client):
         response = test_client.post(
             "/api/v1/articles/elasticsearch/search",
-            json={}
+            json={"limit": "abc"}
         )
-        assert response.status_code != 200
+        assert response.status_code == 422
 
-    def test_search_articles_missing_query(self, test_client):
+    def test_search_articles_missing_query_lists_all(self, test_client):
+        # query vazia e valida: lista todos os artigos (busca sem termo)
         response = test_client.post(
             "/api/v1/articles/elasticsearch/search",
             json={"limit": 10}
         )
-        assert response.status_code in [400, 422]
+        assert response.status_code == 200
+        assert isinstance(response.json()["total"], int)
 
     def test_search_articles_valid_query(self, test_client):
         response = test_client.post(
@@ -158,3 +160,63 @@ class TestErrorHandling:
 
     def test_request_timeout(self, test_client):
         pass
+
+
+@pytest.mark.unit
+class TestElasticsearchSearchEndpoint:
+
+    def _add_articles(self, db_session, prefix):
+        from app.core.database import Article
+        first = Article(oai_identifier=f"oai:{prefix}:1", magazine_id=1, title="Primeiro")
+        second = Article(oai_identifier=f"oai:{prefix}:2", magazine_id=1, title="Segundo")
+        db_session.add_all([first, second])
+        db_session.commit()
+        return first, second
+
+    def test_preserves_elasticsearch_order(self, test_client, db_session):
+        first, second = self._add_articles(db_session, "es-order")
+        es = MagicMock()
+        es.search.return_value = {
+            "total": 2,
+            "articles": [{"article_id": second.id}, {"article_id": first.id}],
+            "facets": {},
+            "available": True,
+        }
+
+        with patch('app.api.articles.get_elasticsearch_client', return_value=es):
+            response = test_client.post("/api/v1/articles/elasticsearch/search", json={"query": "x"})
+
+        assert [a["id"] for a in response.json()["articles"]] == [second.id, first.id]
+
+    def test_passes_all_filters_to_elasticsearch(self, test_client):
+        es = MagicMock()
+        es.search.return_value = {"total": 0, "articles": [], "facets": {}, "available": True}
+
+        with patch('app.api.articles.get_elasticsearch_client', return_value=es):
+            test_client.post(
+                "/api/v1/articles/elasticsearch/search",
+                json={"query": "x", "language": "pt", "keyword": "ia", "has_doi": True},
+            )
+
+        kwargs = es.search.call_args.kwargs
+        assert (kwargs["language"], kwargs["keyword"], kwargs["has_doi"]) == ("pt", "ia", True)
+
+    def test_sql_fallback_applies_language_filter(self, test_client, db_session):
+        from app.core.database import Article
+        db_session.add_all([
+            Article(oai_identifier="oai:fallback-lang:pt", magazine_id=1, title="Fallback lang", language="pt"),
+            Article(oai_identifier="oai:fallback-lang:en", magazine_id=1, title="Fallback lang", language="en"),
+        ])
+        db_session.commit()
+        es = MagicMock()
+        es.search.return_value = {"total": 0, "articles": [], "facets": {}, "available": False}
+
+        with patch('app.api.articles.get_elasticsearch_client', return_value=es):
+            response = test_client.post(
+                "/api/v1/articles/elasticsearch/search",
+                json={"query": "Fallback lang", "language": "en"},
+            )
+
+        data = response.json()
+        assert data["facets"]["search_engine"] == "sql_fallback"
+        assert [a["oai_identifier"] for a in data["articles"]] == ["oai:fallback-lang:en"]

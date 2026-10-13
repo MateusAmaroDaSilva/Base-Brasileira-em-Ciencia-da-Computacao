@@ -2,7 +2,7 @@ from celery import shared_task
 from datetime import datetime
 from app.core.database import SessionLocal, Article, Magazine, SyncLog
 from app.extractors.oai_pmh import OAIPMHExtractor
-from app.core.elasticsearch_client import get_elasticsearch_client
+from app.core.elasticsearch_client import get_elasticsearch_client, article_to_index_dict
 import logging
 
 logger = logging.getLogger(__name__)
@@ -12,6 +12,7 @@ logger = logging.getLogger(__name__)
 def sync_magazine(self, magazine_id: int):
     db = SessionLocal()
     start_time = datetime.utcnow()
+    sync_log = None
 
     try:
         magazine = db.query(Magazine).filter(Magazine.id == magazine_id).first()
@@ -37,75 +38,44 @@ def sync_magazine(self, magazine_id: int):
         # Armazenar no banco com upsert
         articles_new_count = 0
         articles_updated_count = 0
+        # artigos gravados nesta sincronizacao, por oai_identifier; tambem evita inserir
+        # duas vezes um registro repetido na coleta (autoflush desligado)
+        touched = {}
 
-        for article_data in new_articles:
+        for article_data in list(new_articles) + list(updated_articles):
+            oai_id = article_data.get("oai_identifier", "?")
             try:
                 article_data["magazine_id"] = magazine_id
-                oai_id = article_data.get("oai_identifier")
 
-                existing = db.query(Article).filter(Article.oai_identifier == oai_id).first()
+                existing = touched.get(oai_id) or db.query(Article).filter(Article.oai_identifier == oai_id).first()
 
                 if existing:
                     for key, value in article_data.items():
                         setattr(existing, key, value)
                     existing.updated_at = datetime.utcnow()
-                    articles_updated_count += 1
+                    if oai_id not in touched:
+                        articles_updated_count += 1
+                    touched[oai_id] = existing
                 else:
                     article = Article(**article_data)
                     article.created_at = datetime.utcnow()
                     article.updated_at = datetime.utcnow()
                     db.add(article)
                     articles_new_count += 1
+                    touched[oai_id] = article
             except Exception as e:
-                logger.error(f"Erro ao adicionar artigo {article_data.get('oai_identifier', '?')}: {e}")
-
-        # updated_articles é uma lista, não um dict
-        for article_data in updated_articles:
-            try:
-                oai_id = article_data.get("oai_identifier")
-                article = db.query(Article).filter(Article.oai_identifier == oai_id).first()
-                if article:
-                    article_data["magazine_id"] = magazine_id
-                    for key, value in article_data.items():
-                        setattr(article, key, value)
-                    article.updated_at = datetime.utcnow()
-                    articles_updated_count += 1
-            except Exception as e:
-                logger.error(f"Erro ao atualizar artigo: {e}")
+                error_msg = f"Erro ao gravar artigo {oai_id}: {e}"
+                logger.error(error_msg)
+                errors.append(error_msg)
 
         db.commit()
 
-        # Indexar artículos no Elasticsearch
+        # Indexar no Elasticsearch exatamente os artigos gravados agora
         try:
-            es_client = get_elasticsearch_client()
-            indexed_articles = (
-                db.query(Article)
-                .filter(Article.magazine_id == magazine_id)
-                .order_by(Article.id.desc())
-                .limit(articles_new_count + articles_updated_count)
-                .all()
-            )
-
-            articles_to_index = [
-                {
-                    "id": a.id,
-                    "title": a.title,
-                    "abstract": a.abstract or "",
-                    "authors": a.authors or [],
-                    "keywords": a.keywords or [],
-                    "magazine_id": a.magazine_id,
-                    "publication_date": a.publication_date,
-                    "url": a.url,
-                    "oai_identifier": a.oai_identifier,
-                    "created_at": a.created_at,
-                    "updated_at": a.updated_at,
-                }
-                for a in indexed_articles
-            ]
-
+            articles_to_index = [article_to_index_dict(a) for a in touched.values()]
             if articles_to_index:
-                es_client.bulk_index_articles(articles_to_index)
-                logger.info(f"✓ Indexados {len(articles_to_index)} artículos no Elasticsearch")
+                get_elasticsearch_client().bulk_index_articles(articles_to_index)
+                logger.info(f"✓ Indexados {len(articles_to_index)} artigos no Elasticsearch")
         except Exception as e:
             logger.error(f"Erro ao indexar no Elasticsearch: {e}")
 
@@ -142,12 +112,18 @@ def sync_magazine(self, magazine_id: int):
     except Exception as e:
         logger.error(f"Erro na sincronização de {magazine_id}: {e}")
 
-        # Atualizar log
-        sync_log.status = "FAILED"
-        sync_log.errors = [str(e)]
-        sync_log.ended_at = datetime.utcnow()
-        sync_log.duration_seconds = int((datetime.utcnow() - start_time).total_seconds())
-        db.commit()
+        # A sessao pode ter ficado invalida (ex.: erro no commit); descarta antes de gravar o log
+        db.rollback()
+        if sync_log is not None:
+            try:
+                sync_log.status = "FAILED"
+                sync_log.errors = [str(e)]
+                sync_log.ended_at = datetime.utcnow()
+                sync_log.duration_seconds = int((datetime.utcnow() - start_time).total_seconds())
+                db.commit()
+            except Exception as log_error:
+                logger.error(f"Erro ao gravar log de falha da revista {magazine_id}: {log_error}")
+                db.rollback()
 
         retry_in = 5**self.request.retries
         raise self.retry(exc=e, countdown=retry_in)

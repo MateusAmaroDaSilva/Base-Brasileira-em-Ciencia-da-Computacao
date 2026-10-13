@@ -41,6 +41,9 @@ class ElasticsearchClient:
                             "keywords": {"type": "text", "analyzer": "portuguese_analyzer"},
                             "magazine_id": {"type": "integer"},
                             "publication_date": {"type": "date"},
+                            "keywords_exact": {"type": "keyword"},
+                            "language": {"type": "keyword"},
+                            "doi": {"type": "keyword"},
                             "url": {"type": "keyword"},
                             "oai_identifier": {"type": "keyword"},
                             "created_at": {"type": "date"},
@@ -56,36 +59,45 @@ class ElasticsearchClient:
     def create_index(self):
         self._create_index_if_not_exists()
 
+    @staticmethod
+    def _iso(value):
+        if not value:
+            return value
+        return str(value).replace(" ", "T")
+
+    @staticmethod
+    def _join(value) -> str:
+        if isinstance(value, list):
+            return " ".join(v for v in value if isinstance(v, str))
+        return value if isinstance(value, str) else ""
+
+    def _build_document(self, article: dict) -> dict:
+        keywords = article.get("keywords") or []
+        if not isinstance(keywords, list):
+            keywords = []
+        return {
+            "id": article.get("id"),
+            "article_id": article.get("id"),
+            "title": article.get("title", ""),
+            "abstract": article.get("abstract", ""),
+            "authors": self._join(article.get("authors")),
+            "keywords": self._join(keywords),
+            # mesma normalizacao das facetas de palavra-chave da busca SQL
+            "keywords_exact": [k.strip().lower() for k in keywords if isinstance(k, str) and k.strip()],
+            "language": article.get("language"),
+            "doi": article.get("doi"),
+            "magazine_id": article.get("magazine_id"),
+            "publication_date": self._iso(article.get("publication_date")),
+            "url": article.get("url", ""),
+            "oai_identifier": article.get("oai_identifier", ""),
+            "created_at": self._iso(article.get("created_at")),
+            "updated_at": self._iso(article.get("updated_at")),
+        }
+
     def index_article(self, article_dict: dict):
+        doc_id = article_dict.get("id")
         try:
-            doc_id = article_dict.get("id")
-
-            created_at = article_dict.get("created_at")
-            updated_at = article_dict.get("updated_at")
-            pub_date = article_dict.get("publication_date")
-
-            if created_at:
-                created_at = str(created_at).replace(" ", "T") if " " in str(created_at) else str(created_at)
-            if updated_at:
-                updated_at = str(updated_at).replace(" ", "T") if " " in str(updated_at) else str(updated_at)
-            if pub_date:
-                pub_date = str(pub_date).replace(" ", "T") if " " in str(pub_date) else str(pub_date)
-
-            body = {
-                "id": article_dict.get("id"),
-                "article_id": article_dict.get("id"),
-                "title": article_dict.get("title", ""),
-                "abstract": article_dict.get("abstract", ""),
-                "authors": " ".join(article_dict.get("authors", [])) if article_dict.get("authors") else "",
-                "keywords": " ".join(article_dict.get("keywords", [])) if article_dict.get("keywords") else "",
-                "magazine_id": article_dict.get("magazine_id"),
-                "publication_date": pub_date,
-                "url": article_dict.get("url", ""),
-                "oai_identifier": article_dict.get("oai_identifier", ""),
-                "created_at": created_at,
-                "updated_at": updated_at,
-            }
-            self.es.index(index=self.index_name, id=doc_id, body=body)
+            self.es.index(index=self.index_name, id=doc_id, body=self._build_document(article_dict))
             return True
         except Exception as e:
             logger.error(f"Erro ao indexar artigo {doc_id}: {e}")
@@ -96,50 +108,9 @@ class ElasticsearchClient:
         failed_count = 0
 
         for article in articles:
-            try:
-                doc_id = article.get("id")
-                created_at = article.get("created_at")
-                updated_at = article.get("updated_at")
-                pub_date = article.get("publication_date")
-
-                if created_at:
-                    created_at = str(created_at).replace(" ", "T") if " " in str(created_at) else str(created_at)
-                if updated_at:
-                    updated_at = str(updated_at).replace(" ", "T") if " " in str(updated_at) else str(updated_at)
-                if pub_date:
-                    pub_date = str(pub_date).replace(" ", "T") if " " in str(pub_date) else str(pub_date)
-
-                authors_raw = article.get("authors", [])
-                authors_val = (
-                    " ".join(authors_raw)
-                    if isinstance(authors_raw, list)
-                    else (authors_raw if isinstance(authors_raw, str) else "")
-                )
-                keywords_raw = article.get("keywords", [])
-                keywords_val = (
-                    " ".join(keywords_raw)
-                    if isinstance(keywords_raw, list)
-                    else (keywords_raw if isinstance(keywords_raw, str) else "")
-                )
-
-                body = {
-                    "id": article.get("id"),
-                    "article_id": article.get("id"),
-                    "title": article.get("title", ""),
-                    "abstract": article.get("abstract", ""),
-                    "authors": authors_val,
-                    "keywords": keywords_val,
-                    "magazine_id": article.get("magazine_id"),
-                    "publication_date": pub_date,
-                    "url": article.get("url", ""),
-                    "oai_identifier": article.get("oai_identifier", ""),
-                    "created_at": created_at,
-                    "updated_at": updated_at,
-                }
-                self.es.index(index=self.index_name, id=doc_id, body=body)
+            if self.index_article(article):
                 indexed_count += 1
-            except Exception as e:
-                logger.error(f"Erro ao indexar artigo {article.get('id')}: {e}")
+            else:
                 failed_count += 1
 
         logger.info(f"✓ Bulk indexing: {indexed_count} sucesso, {failed_count} falhas")
@@ -147,6 +118,27 @@ class ElasticsearchClient:
     def _has_boolean_operators(self, query: str) -> bool:
         tokens = query.split()
         return any(t in ("AND", "OR", "NOT") for t in tokens) or '"' in query or "(" in query
+
+    def _build_filters(self, magazine_id, year_from, year_to, language, keyword, has_doi) -> dict:
+        filters = {}
+        if magazine_id:
+            filters["magazine"] = {"term": {"magazine_id": magazine_id}}
+        if year_from or year_to:
+            date_range = {}
+            if year_from:
+                date_range["gte"] = f"{year_from}-01-01"
+            if year_to:
+                date_range["lte"] = f"{year_to}-12-31"
+            filters["year"] = {"range": {"publication_date": date_range}}
+        if language:
+            filters["language"] = {"term": {"language": language}}
+        if keyword:
+            filters["keyword"] = {"term": {"keywords_exact": keyword.strip().lower()}}
+        if has_doi is True:
+            filters["doi"] = {"exists": {"field": "doi"}}
+        elif has_doi is False:
+            filters["doi"] = {"bool": {"must_not": {"exists": {"field": "doi"}}}}
+        return filters
 
     def search(
         self,
@@ -158,6 +150,8 @@ class ElasticsearchClient:
         year_to: int = None,
         language: str = None,
         search_type: str = "simple",
+        keyword: str = None,
+        has_doi: bool = None,
     ):
         try:
             # Build main query clause
@@ -182,42 +176,50 @@ class ElasticsearchClient:
                     }
                 }
 
-            # Build filters
-            filters = []
-            if magazine_id:
-                filters.append({"term": {"magazine_id": magazine_id}})
-            if year_from or year_to:
-                date_range = {}
-                if year_from:
-                    date_range["gte"] = f"{year_from}-01-01"
-                if year_to:
-                    date_range["lte"] = f"{year_to}-12-31"
-                filters.append({"range": {"publication_date": date_range}})
-            if language:
-                filters.append({"term": {"language": language}})
+            filters = self._build_filters(magazine_id, year_from, year_to, language, keyword, has_doi)
 
-            if filters:
-                final_query = {"bool": {"must": [query_clause], "filter": filters}}
-            else:
-                final_query = query_clause if not query else {"bool": {"must": [query_clause]}}
+            # Como na busca SQL, cada faceta ignora o proprio filtro para o usuario poder trocar de valor:
+            # os filtros vao no post_filter (afeta so os hits) e cada agregacao reaplica os demais.
+            def facet(dimension, agg):
+                others = [f for name, f in filters.items() if name != dimension]
+                return {"filter": {"bool": {"filter": others}}, "aggs": {"values": agg}}
 
             search_body = {
-                "query": final_query,
+                "query": {"bool": {"must": [query_clause]}},
                 "sort": [{"publication_date": {"order": "desc", "missing": "_last"}}],
                 "from": offset,
                 "size": limit,
+                "track_total_hits": True,
                 "aggs": {
-                    "by_magazine": {"terms": {"field": "magazine_id", "size": 20}},
-                    "by_year": {
-                        "date_histogram": {
-                            "field": "publication_date",
-                            "calendar_interval": "year",
-                            "format": "yyyy",
-                            "min_doc_count": 1,
-                        }
-                    },
+                    "by_magazine": facet("magazine", {"terms": {"field": "magazine_id", "size": 50}}),
+                    "by_year": facet(
+                        "year",
+                        {
+                            "date_histogram": {
+                                "field": "publication_date",
+                                "calendar_interval": "year",
+                                "format": "yyyy",
+                                "min_doc_count": 1,
+                            }
+                        },
+                    ),
+                    "by_language": facet("language", {"terms": {"field": "language", "size": 20}}),
+                    "by_keyword": facet("keyword", {"terms": {"field": "keywords_exact", "size": 15}}),
+                    "by_doi": facet(
+                        "doi",
+                        {
+                            "filters": {
+                                "filters": {
+                                    "com_doi": {"exists": {"field": "doi"}},
+                                    "sem_doi": {"bool": {"must_not": {"exists": {"field": "doi"}}}},
+                                }
+                            }
+                        },
+                    ),
                 },
             }
+            if filters:
+                search_body["post_filter"] = {"bool": {"filter": list(filters.values())}}
 
             results = self.es.search(index=self.index_name, body=search_body)
 
@@ -226,14 +228,19 @@ class ElasticsearchClient:
             articles = [hit["_source"] for hit in hits.get("hits", [])]
 
             aggs = results.get("aggregations", {})
+
+            def buckets(name):
+                return aggs.get(name, {}).get("values", {}).get("buckets", [])
+
+            doi_buckets = buckets("by_doi") or {}
             facets = {
-                "by_magazine": [
-                    {"id": b["key"], "count": b["doc_count"]}
-                    for b in aggs.get("by_magazine", {}).get("buckets", [])
-                ],
-                "by_year": [
-                    {"year": b["key_as_string"], "count": b["doc_count"]}
-                    for b in aggs.get("by_year", {}).get("buckets", [])
+                "by_magazine": [{"id": b["key"], "count": b["doc_count"]} for b in buckets("by_magazine")],
+                "by_year": [{"year": b["key_as_string"], "count": b["doc_count"]} for b in buckets("by_year")],
+                "by_language": [{"code": b["key"], "count": b["doc_count"]} for b in buckets("by_language")],
+                "by_keyword": [{"keyword": b["key"], "count": b["doc_count"]} for b in buckets("by_keyword")],
+                "by_doi": [
+                    {"value": "com_doi", "label": "Com DOI", "count": doi_buckets.get("com_doi", {}).get("doc_count", 0)},
+                    {"value": "sem_doi", "label": "Sem DOI", "count": doi_buckets.get("sem_doi", {}).get("doc_count", 0)},
                 ],
             }
 
@@ -279,6 +286,25 @@ class ElasticsearchClient:
             logger.info(f" Index '{self.index_name}' recriado")
         except Exception as e:
             logger.error(f"Erro ao recriar index: {e}")
+
+
+def article_to_index_dict(article) -> dict:
+    """Converte um Article (ORM) no dict aceito por index_article/bulk_index_articles."""
+    return {
+        "id": article.id,
+        "title": article.title,
+        "abstract": article.abstract or "",
+        "authors": article.authors or [],
+        "keywords": article.keywords or [],
+        "language": article.language,
+        "doi": article.doi,
+        "magazine_id": article.magazine_id,
+        "publication_date": article.publication_date,
+        "url": article.url,
+        "oai_identifier": article.oai_identifier,
+        "created_at": article.created_at,
+        "updated_at": article.updated_at,
+    }
 
 
 _es_client = None

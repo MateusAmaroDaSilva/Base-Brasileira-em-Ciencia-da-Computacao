@@ -197,3 +197,62 @@ class TestSyncTasks:
                 sync_magazine(magazine_id=1)
                 
                 assert mock_logger.info.called or True
+
+
+@pytest.mark.unit
+class TestSyncTasksRealSession:
+    """Usa o SQLite de teste de verdade para conferir upsert e indexacao."""
+
+    @pytest.fixture
+    def session_factory(self, test_db_engine):
+        from sqlalchemy.orm import sessionmaker
+        return sessionmaker(autocommit=False, autoflush=False, bind=test_db_engine)
+
+    def test_failure_before_sync_log_keeps_original_error(self):
+        mock_session = MagicMock()
+        mock_session.query.side_effect = RuntimeError("banco fora do ar")
+
+        with patch('app.tasks.sync_tasks.SessionLocal', return_value=mock_session):
+            # chamada direta: o retry do Celery relanca a excecao original (e nao UnboundLocalError)
+            with pytest.raises(RuntimeError, match="banco fora do ar"):
+                sync_magazine(magazine_id=1)
+
+        mock_session.close.assert_called_once()
+
+    def test_indexes_exactly_the_touched_articles(self, session_factory):
+        from app.core.database import Article, Magazine, SyncLog
+
+        db = session_factory()
+        magazine = Magazine(name="Sync Real", url_oai_pmh="http://sync-real.test/oai")
+        db.add(magazine)
+        db.commit()
+        db.add(Article(oai_identifier="oai:sync-real:old", magazine_id=magazine.id, title="Antigo"))
+        # artigo mais recente (id maior) que NAO vem na coleta: nao deve ser reindexado
+        db.add(Article(oai_identifier="oai:sync-real:untouched", magazine_id=magazine.id, title="Intocado"))
+        db.commit()
+        magazine_id = magazine.id
+        db.close()
+
+        harvested = [
+            {"oai_identifier": "oai:sync-real:old", "title": "Antigo atualizado"},
+            {"oai_identifier": "oai:sync-real:new", "title": "Novo"},
+            # registro repetido na coleta nao pode gerar insercao duplicada
+            {"oai_identifier": "oai:sync-real:new", "title": "Novo (repetido)"},
+        ]
+
+        with patch('app.tasks.sync_tasks.SessionLocal', session_factory), \
+             patch('app.tasks.sync_tasks.OAIPMHExtractor') as mock_oai, \
+             patch('app.tasks.sync_tasks.get_elasticsearch_client') as mock_get_es:
+            mock_oai.return_value.fetch_articles.return_value = (harvested, {}, [])
+            result = sync_magazine(magazine_id=magazine_id)
+
+        assert result == {"status": "SUCCESS", "new_articles": 1, "updated_articles": 1, "errors": 0}
+
+        indexed = mock_get_es.return_value.bulk_index_articles.call_args[0][0]
+        assert sorted(d["oai_identifier"] for d in indexed) == ["oai:sync-real:new", "oai:sync-real:old"]
+
+        db = session_factory()
+        assert db.query(Article).filter(Article.oai_identifier == "oai:sync-real:new").count() == 1
+        log = db.query(SyncLog).filter(SyncLog.magazine_id == magazine_id).one()
+        assert log.status == "SUCCESS"
+        db.close()

@@ -90,6 +90,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://user:password@postgres:5432/base_computacao
       - REDIS_URL=redis://redis:6379
+      - ELASTICSEARCH_HOST=elasticsearch
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
     depends_on:
@@ -103,7 +104,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: base_computacao_celery_beat
-    command: celery -A app.tasks.celery_app beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    # o arquivo de estado do beat fica fora de /app para nao sujar o diretorio montado do backend
+    command: celery -A app.tasks.celery_app beat --loglevel=info --schedule /tmp/celerybeat-schedule
     volumes:
       - ./backend:/app
     environment:
