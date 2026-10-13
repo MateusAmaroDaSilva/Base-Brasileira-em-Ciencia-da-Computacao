@@ -80,6 +80,8 @@ services:
       ELASTICSEARCH_PORT: "9200"
       ENVIRONMENT: production
       DEBUG: "false"
+      # assina os tokens de login; sem ela a API recusa subir em producao
+      SECRET_KEY: ${SECRET_KEY}
     networks:
       - default
     healthcheck:
@@ -132,6 +134,34 @@ services:
         reservations:
           cpus: '0.1'
           memory: 128M
+
+  celery_beat:
+    image: ghcr.io/mateusamarodasilva/base-brasileira-em-ciencia-da-computacao:${TAG}
+    # dispara a sincronizacao diaria de todas as revistas (horario em app/tasks/celery_app.py)
+    command: celery -A app.tasks.celery_app beat --loglevel=info --schedule /tmp/celerybeat-schedule
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/0
+      ENVIRONMENT: production
+    networks:
+      - default
+    deploy:
+      # uma replica so: duas instancias do beat disparariam cada sincronizacao em dobro
+      replicas: 1
+      restart_policy:
+        condition: any
+      update_config:
+        order: stop-first
+        failure_action: rollback
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+        reservations:
+          cpus: '0.05'
+          memory: 64M
 
   frontend:
     image: ghcr.io/mateusamarodasilva/base-brasileira-em-ciencia-da-computacao-frontend:${TAG}

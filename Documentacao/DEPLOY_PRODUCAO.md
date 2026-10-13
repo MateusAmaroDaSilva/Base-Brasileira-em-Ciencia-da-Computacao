@@ -87,9 +87,27 @@ Pontos que fazem a stack conviver com outros projetos no mesmo servidor:
 - backend e frontend usam `order: start-first` com `failure_action: rollback`: a versão
   nova sobe antes de a antiga cair e, se falhar, o próprio servidor volta atrás.
 
-As variáveis da stack (`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `DOMAIN` e
-`TAG`) têm seus valores preenchidos no painel, nunca neste repositório. O arquivo
-`.env.example` lista os nomes.
+As variáveis da stack (`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `DOMAIN`,
+`SECRET_KEY` e `TAG`) têm seus valores preenchidos no painel, nunca neste repositório. O
+arquivo `.env.example` lista os nomes.
+
+`SECRET_KEY` assina os tokens de login das contas de usuário. Em produção ela é obrigatória:
+o backend **recusa subir** se ela estiver ausente, vazia, curta (menos de 32 caracteres) ou
+igual à chave de desenvolvimento. Cadastre-a no painel **antes** de publicar a primeira versão
+que traz as contas, senão o deploy falha na verificação de saúde e volta sozinho para a
+versão anterior. Trocar a chave depois desconecta todos os usuários.
+
+---
+
+## Migrações do banco
+
+Mudanças na estrutura do banco são aplicadas sozinhas quando o backend sobe
+(`python -m app.core.migrate`, via Alembic, em `backend/migrations`). As migrações só criam o
+que ainda não existe e **nunca apagam dados**, então o banco já em produção é atualizado no
+lugar. Mesmo assim, antes de uma versão que altera a estrutura, faça uma cópia do banco.
+
+Voltar a `TAG` para uma versão anterior não desfaz migrações: as colunas e tabelas novas
+ficam no banco, e a versão antiga simplesmente as ignora.
 
 ---
 
@@ -111,6 +129,15 @@ não existe "voltar para a de ontem".
 - a variável `TAG` da stack igual à versão que acabou de subir;
 - o site abrindo e uma busca real retornando resultados;
 - `GET /api/v1/admin/health` respondendo 200.
+
+---
+
+## Depois de uma versão que muda o extrator
+
+Os artigos já gravados só ganham os campos novos (data, DOI, volume, tipo, licença...) quando
+são coletados de novo. Depois de publicar uma versão que altera o extrator, dispare uma
+sincronização completa (`POST /api/v1/admin/sync`); ela atualiza os registros existentes no
+lugar, sem duplicar.
 
 ---
 
