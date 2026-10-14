@@ -73,23 +73,23 @@ class TestUserSearchScenarios:
 @pytest.mark.slow
 class TestAdministratorScenarios:
 
-    def test_admin_sync_single_magazine(self, test_client):
+    def test_admin_sync_single_magazine(self, test_client, admin_headers):
         response = test_client.post(
-            "/api/v1/admin/sync",
+            "/api/v1/admin/sync", headers=admin_headers,
             json={"magazine_id": 1}
         )
         
         assert response.status_code in [200, 202, 404, 400]
 
-    def test_admin_view_sync_history(self, test_client):
-        response = test_client.get("/api/v1/admin/logs")
+    def test_admin_view_sync_history(self, test_client, admin_headers):
+        response = test_client.get("/api/v1/admin/logs", headers=admin_headers)
         
         assert response.status_code == 200
         logs = response.json()
         assert isinstance(logs, (list, dict))
 
-    def test_admin_manage_magazines(self, test_client):
-        response = test_client.get("/api/v1/magazines")
+    def test_admin_manage_magazines(self, test_client, admin_headers):
+        response = test_client.get("/api/v1/magazines", headers=admin_headers)
         assert response.status_code == 200
         
         new_mag = {
@@ -98,12 +98,12 @@ class TestAdministratorScenarios:
             "description": "Test journal"
         }
         
-        response = test_client.post("/api/v1/magazines", json=new_mag)
+        response = test_client.post("/api/v1/magazines", headers=admin_headers, json=new_mag)
         assert response.status_code in [200, 201, 400, 422]
 
-    def test_admin_reindex_elasticsearch(self, test_client):
+    def test_admin_reindex_elasticsearch(self, test_client, admin_headers):
         response = test_client.post(
-            "/api/v1/articles/elasticsearch/reindex"
+            "/api/v1/articles/elasticsearch/reindex", headers=admin_headers
         )
         
         assert response.status_code in [200, 202]

@@ -71,6 +71,7 @@ class UserResponse(BaseModel):
     areas: List[str] = []
     save_history: bool
     saved_count: int = 0
+    is_admin: bool = False
     # Foto como data URL (image/jpeg, png ou webp), ou nulo quando nao ha foto
     avatar_url: Optional[str] = None
     created_at: datetime

@@ -3,6 +3,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, func, extract, cast, Text
+from app.api.deps import require_admin
 from app.core.database import get_db, Article
 from app.schemas.schemas import ArticleResponse, SearchRequest, SearchResponse
 from app.core.elasticsearch_client import get_elasticsearch_client, article_to_index_dict
@@ -283,7 +284,7 @@ def suggest_search(q: str, limit: int = 5):
     return {"query": q, "suggestions": suggestions, "count": len(suggestions)}
 
 
-@router.post("/elasticsearch/reindex")
+@router.post("/elasticsearch/reindex", dependencies=[Depends(require_admin)])
 def reindex_articles(db: Session = Depends(get_db)):
     try:
         es_client = get_elasticsearch_client()

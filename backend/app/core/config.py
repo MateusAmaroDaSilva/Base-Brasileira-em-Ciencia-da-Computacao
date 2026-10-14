@@ -29,6 +29,8 @@ class Settings(BaseSettings):
 
     # Contas: SECRET_KEY assina os tokens de login. Em producao e obrigatoria (ver app/core/security.py).
     SECRET_KEY: str = "dev-only-insecure-secret-change-me"
+    # E-mails (separados por virgula) das contas que administram a base. Sem lista, ninguem e admin.
+    ADMIN_EMAILS: str = ""
     ACCESS_TOKEN_EXPIRE_HOURS: int = 12
     ACCESS_TOKEN_REMEMBER_DAYS: int = 30
 

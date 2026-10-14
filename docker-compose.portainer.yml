@@ -82,6 +82,8 @@ services:
       DEBUG: "false"
       # assina os tokens de login; sem ela a API recusa subir em producao
       SECRET_KEY: ${SECRET_KEY}
+      # e-mails (separados por virgula) das contas que administram a base; vazio = ninguem
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
     networks:
       - default
     healthcheck:

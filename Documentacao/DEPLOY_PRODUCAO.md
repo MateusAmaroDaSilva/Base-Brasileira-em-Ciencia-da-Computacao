@@ -97,6 +97,15 @@ igual à chave de desenvolvimento. Cadastre-a no painel **antes** de publicar a 
 que traz as contas, senão o deploy falha na verificação de saúde e volta sozinho para a
 versão anterior. Trocar a chave depois desconecta todos os usuários.
 
+`ADMIN_EMAILS` (opcional) lista, separados por vírgula, os e-mails das contas que administram
+a base. A pessoa precisa se cadastrar no site com esse e-mail; a partir daí pode disparar a
+coleta (`POST /api/v1/admin/sync`), ver o histórico (`GET /api/v1/admin/logs`), criar, editar
+e apagar revistas e reindexar a busca. Sem a variável (ou vazia) ninguém é administrador e
+essas rotas respondem 403. Sem login respondem 401.
+
+O login também tem limite de tentativas: 5 erros seguidos para o mesmo e-mail (ou 30 do mesmo
+endereço) bloqueiam novas tentativas por 15 minutos (resposta 429).
+
 ---
 
 ## Migrações do banco

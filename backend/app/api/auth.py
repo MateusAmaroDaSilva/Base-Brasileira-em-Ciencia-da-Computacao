@@ -5,7 +5,8 @@ from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, is_admin
+from app.core import ratelimit
 from app.core.database import SavedArticle, SearchHistory, User, get_db
 from app.core.security import DUMMY_HASH, create_access_token, hash_password, verify_password
 from app.schemas.account import LoginRequest, RegisterRequest, TokenResponse, UserResponse, UserUpdate
@@ -23,6 +24,7 @@ def user_response(user: User, db: Session) -> UserResponse:
         areas=user.areas or [],
         save_history=user.save_history,
         saved_count=saved,
+        is_admin=is_admin(user),
         avatar_url=(
             f"data:{user.avatar_mime};base64,{base64.b64encode(user.avatar).decode('ascii')}" if user.avatar else None
         ),
@@ -54,12 +56,22 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/auth/login", response_model=TokenResponse)
-def login(data: LoginRequest, db: Session = Depends(get_db)):
+def login(data: LoginRequest, request: Request, db: Session = Depends(get_db)):
+    ip = request.client.host if request.client else "?"
+    wait = ratelimit.retry_after(data.email, ip)
+    if wait:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Muitas tentativas. Tente de novo em {max(1, wait // 60)} min.",
+            headers={"Retry-After": str(wait)},
+        )
     user = db.query(User).filter(User.email == data.email).first()
     # Sempre confere um hash, exista a conta ou nao, e responde igual nos dois casos
     valid = verify_password(data.password, user.password_hash if user else DUMMY_HASH)
     if user is None or not valid:
+        ratelimit.register_failure(data.email, ip)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="E-mail ou senha incorretos")
+    ratelimit.reset(data.email)
     token = create_access_token(user.id, remember=data.remember)
     return TokenResponse(access_token=token, user=user_response(user, db))
 

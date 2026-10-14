@@ -69,12 +69,12 @@ class TestArticlesEndpoints:
         response = test_client.get("/api/v1/articles/elasticsearch/suggest?q=test&limit=invalid")
         assert response.status_code in [400, 422]
 
-    def test_reindex_articles(self, test_client):
-        response = test_client.post("/api/v1/articles/elasticsearch/reindex")
+    def test_reindex_articles(self, test_client, admin_headers):
+        response = test_client.post("/api/v1/articles/elasticsearch/reindex", headers=admin_headers)
         assert response.status_code in [200, 202]
 
-    def test_reindex_response_format(self, test_client):
-        response = test_client.post("/api/v1/articles/elasticsearch/reindex")
+    def test_reindex_response_format(self, test_client, admin_headers):
+        response = test_client.post("/api/v1/articles/elasticsearch/reindex", headers=admin_headers)
         if response.status_code in [200, 202]:
             data = response.json()
             assert "status" in data or "message" in data
@@ -92,16 +92,16 @@ class TestMagazinesEndpoints:
         assert response.status_code == 200
         assert isinstance(response.json(), list)
 
-    def test_create_magazine_invalid_data(self, test_client):
+    def test_create_magazine_invalid_data(self, test_client, admin_headers):
         response = test_client.post(
-            "/api/v1/magazines",
+            "/api/v1/magazines", headers=admin_headers,
             json={"name": "Test"}  
         )
         assert response.status_code in [400, 422]
 
-    def test_create_magazine_valid_data(self, test_client, sample_magazine):
+    def test_create_magazine_valid_data(self, test_client, admin_headers, sample_magazine):
         response = test_client.post(
-            "/api/v1/magazines",
+            "/api/v1/magazines", headers=admin_headers,
             json=sample_magazine
         )
         assert response.status_code in [200, 201]
@@ -110,34 +110,34 @@ class TestMagazinesEndpoints:
         response = test_client.get("/api/v1/magazines/1")
         assert response.status_code in [200, 404]
 
-    def test_update_magazine(self, test_client, sample_magazine):
+    def test_update_magazine(self, test_client, admin_headers, sample_magazine):
         response = test_client.put(
-            "/api/v1/magazines/1",
+            "/api/v1/magazines/1", headers=admin_headers,
             json=sample_magazine
         )
         assert response.status_code in [200, 404]
 
-    def test_delete_magazine(self, test_client):
-        response = test_client.delete("/api/v1/magazines/1")
+    def test_delete_magazine(self, test_client, admin_headers):
+        response = test_client.delete("/api/v1/magazines/1", headers=admin_headers)
         assert response.status_code in [200, 204, 404]
 
 
 @pytest.mark.unit
 class TestAdminEndpoints:
 
-    def test_get_sync_logs(self, test_client):
-        response = test_client.get("/api/v1/admin/logs")
+    def test_get_sync_logs(self, test_client, admin_headers):
+        response = test_client.get("/api/v1/admin/logs", headers=admin_headers)
         assert response.status_code == 200
         assert isinstance(response.json(), (list, dict))
 
-    def test_manual_sync(self, test_client, mock_celery_tasks):
-        response = test_client.post("/api/v1/admin/sync")
+    def test_manual_sync(self, test_client, admin_headers, mock_celery_tasks):
+        response = test_client.post("/api/v1/admin/sync", headers=admin_headers)
         assert response.status_code in [200, 202]
         mock_celery_tasks['sync_all_magazines'].delay.assert_called_once()
 
-    def test_manual_sync_single_magazine(self, test_client, mock_celery_tasks):
+    def test_manual_sync_single_magazine(self, test_client, admin_headers, mock_celery_tasks):
         response = test_client.post(
-            "/api/v1/admin/sync?magazine_id=1"
+            "/api/v1/admin/sync?magazine_id=1", headers=admin_headers
         )
         assert response.status_code in [200, 202]
         mock_celery_tasks['sync_magazine'].delay.assert_called_once_with(1)

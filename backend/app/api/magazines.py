@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from app.api.deps import require_admin
 from app.core.database import get_db, Magazine
 from app.schemas.schemas import MagazineCreate, MagazineResponse, MagazineUpdate
 from typing import List
@@ -13,7 +14,7 @@ def list_magazines(db: Session = Depends(get_db)):
     return magazines
 
 
-@router.post("/", response_model=MagazineResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=MagazineResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
 def create_magazine(magazine: MagazineCreate, db: Session = Depends(get_db)):
     # Verificar duplicata
     existing = db.query(Magazine).filter(Magazine.url_oai_pmh == magazine.url_oai_pmh).first()
@@ -38,7 +39,7 @@ def get_magazine(magazine_id: int, db: Session = Depends(get_db)):
     return magazine
 
 
-@router.put("/{magazine_id}", response_model=MagazineResponse)
+@router.put("/{magazine_id}", response_model=MagazineResponse, dependencies=[Depends(require_admin)])
 def update_magazine(magazine_id: int, magazine: MagazineUpdate, db: Session = Depends(get_db)):
     db_magazine = db.query(Magazine).filter(Magazine.id == magazine_id).first()
 
@@ -55,7 +56,7 @@ def update_magazine(magazine_id: int, magazine: MagazineUpdate, db: Session = De
     return db_magazine
 
 
-@router.delete("/{magazine_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{magazine_id}", status_code=status.HTTP_204_NO_CONTENT, dependencies=[Depends(require_admin)])
 def delete_magazine(magazine_id: int, db: Session = Depends(get_db)):
     magazine = db.query(Magazine).filter(Magazine.id == magazine_id).first()
 

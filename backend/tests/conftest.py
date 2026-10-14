@@ -167,3 +167,26 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "slow: mark test as slow")
     config.addinivalue_line("markers", "elasticsearch: requires Elasticsearch")
     config.addinivalue_line("markers", "database: requires Database")
+
+
+@pytest.fixture(autouse=True)
+def reset_login_limits():
+    from app.core import ratelimit
+    ratelimit.clear_all()
+    yield
+    ratelimit.clear_all()
+
+
+@pytest.fixture
+def admin_headers(test_client, db_session, monkeypatch):
+    """Cabecalho de uma conta administradora (ADMIN_EMAILS aponta para ela)."""
+    from app.core.config import settings
+    from app.core.database import User
+    monkeypatch.setattr(settings, "ADMIN_EMAILS", "admin@exemplo.br")
+    res = test_client.post("/api/v1/auth/register", json={
+        "name": "Admin Teste", "email": "admin@exemplo.br", "password": "senha-segura-1", "accept_terms": True,
+    })
+    assert res.status_code == 201, res.text
+    yield {"Authorization": f"Bearer {res.json()['access_token']}"}
+    db_session.query(User).filter(User.email == "admin@exemplo.br").delete()
+    db_session.commit()
