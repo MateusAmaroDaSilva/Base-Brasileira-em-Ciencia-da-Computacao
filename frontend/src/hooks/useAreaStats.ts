@@ -6,6 +6,8 @@ import { NO_FILTERS } from '../lib/searchDefaults'
 export interface AreaStats {
   total: number
   magazines: number
+  /** Artigos da area em cada revista (id da revista -> total) */
+  byMagazine: Record<number, number>
   /** Artigos dos ultimos 3 anos; so existe quando pedido */
   recent?: number
 }
@@ -21,7 +23,8 @@ export function useAreaStats(withRecent: boolean) {
       AREAS.map(async (area) => {
         try {
           const res = await searchArticles({ query: area.term, searchType: 'simple', filters: NO_FILTERS, page: 1, limit: 1 })
-          const magazines = (res.facets?.by_magazine ?? []).filter((m) => m.count > 0).length
+          const byMagazine = Object.fromEntries((res.facets?.by_magazine ?? []).map((m) => [m.id, m.count]))
+          const magazines = Object.values(byMagazine).filter((n) => n > 0).length
           let recent: number | undefined
           if (withRecent) {
             const r = await searchArticles({
@@ -33,7 +36,7 @@ export function useAreaStats(withRecent: boolean) {
             })
             recent = r.total
           }
-          return [area.slug, { total: res.total, magazines, recent }] as const
+          return [area.slug, { total: res.total, magazines, byMagazine, recent }] as const
         } catch {
           return null
         }

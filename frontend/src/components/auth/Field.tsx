@@ -10,7 +10,7 @@ interface FieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'classN
 
 export const inputShell =
   'flex items-center gap-3 h-12 2xl:h-14 px-4 bg-white border border-linha rounded-[10px] text-[15px] 2xl:text-[17px] ' +
-  'focus-within:border-brand-300 focus-within:ring-2 focus-within:ring-brand-100'
+  'focus-within:border-brand-300'
 
 export default function Field({ label, icon, reveal, type = 'text', id, ...rest }: FieldProps) {
   const [shown, setShown] = useState(false)

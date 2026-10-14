@@ -1,9 +1,11 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import ListToolbar from '../components/ui/ListToolbar'
-import AreaTreemap from '../components/ui/AreaTreemap'
+import AreaIcon from '../components/ui/AreaIcon'
+import AreaHeatmap from '../components/ui/AreaHeatmap'
 import { AREAS, searchLink } from '../data/areas'
 import { useAreaStats } from '../hooks/useAreaStats'
+import { useMagazines } from '../hooks/useMagazines'
 import iconArrow from '../assets/icons/arrow-right.svg'
 
 const NUMBER_FORMAT = new Intl.NumberFormat('pt-BR')
@@ -26,6 +28,7 @@ export default function AreasPage() {
   // "Em crescimento" compara os ultimos 3 anos: so pede esses numeros quando o filtro e usado
   const [wantRecent, setWantRecent] = useState(false)
   const stats = useAreaStats(wantRecent)
+  const { magazines } = useMagazines()
 
   function handleChip(value: string) {
     setChip(value)
@@ -73,8 +76,8 @@ export default function AreasPage() {
               return (
                 <li key={area.slug} className="bg-white border border-linha rounded-2xl p-6 flex flex-col gap-4">
                   <div className="flex items-center gap-4">
-                    <span className="w-12 h-12 rounded-xl bg-[#e6ebf3] flex items-center justify-center shrink-0">
-                      <img src={area.icon} alt="" aria-hidden="true" className="w-[22px] h-[22px]" />
+                    <span className="w-16 h-16 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center shrink-0">
+                      <AreaIcon slug={area.slug} className="w-11 h-11" />
                     </span>
                     <div className="min-w-0">
                       <h2 className="text-xl font-semibold leading-snug text-brand-600">{area.label}</h2>
@@ -114,9 +117,9 @@ export default function AreasPage() {
 
         <section className="mt-14" aria-labelledby="panorama">
           <h2 id="panorama" className="text-[28px] lg:text-[34px] font-semibold text-brand-600">Panorama da base</h2>
-          <p className="mt-1 text-sm">Quantos artigos cada área reúne hoje.</p>
+          <p className="mt-1 text-sm">Quantos artigos cada área reúne hoje e em quais revistas eles estão.</p>
           <div className="mt-5 bg-white border border-linha rounded-2xl p-4 sm:p-6">
-            <AreaTreemap areas={AREAS} totals={Object.fromEntries(AREAS.map((a) => [a.slug, stats[a.slug]?.total]))} />
+            <AreaHeatmap areas={AREAS} magazines={magazines} stats={stats} />
           </div>
         </section>
       </div>

@@ -190,9 +190,11 @@ export default function ArticleDetailPage() {
               <span className="h-[26px] px-2.5 inline-flex items-center rounded-full bg-verde-50 text-verde-600 text-xs font-semibold">
                 {area?.label ?? '—'}
               </span>
-              <span className="h-[26px] px-2.5 inline-flex items-center rounded-full bg-amarelo-100 text-[#8a6a00] text-xs font-semibold">
-                Acesso aberto
-              </span>
+              {article.open_access && (
+                <span className="h-[26px] px-2.5 inline-flex items-center rounded-full bg-amarelo-100 text-[#8a6a00] text-xs font-semibold">
+                  Acesso aberto
+                </span>
+              )}
             </div>
 
             <h1 className="mt-4 text-[30px] sm:text-[40px] lg:text-[46px] font-semibold leading-[1.15] text-brand-600 break-anywhere">

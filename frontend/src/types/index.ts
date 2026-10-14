@@ -19,6 +19,17 @@ export interface Article {
   publication_date?: string
   url?: string
   doi?: string
+  issn?: string | null
+  volume?: string | null
+  issue?: string | null
+  pages?: string | null
+  language?: string | null
+  article_type?: string
+  publisher?: string | null
+  license?: string | null
+  /** true so quando o registro prova (licenca aberta); null = desconhecido */
+  open_access?: boolean | null
+  author_details?: { name: string; affiliation?: string | null; orcid?: string | null }[] | null
   created_at: string
 }
 
