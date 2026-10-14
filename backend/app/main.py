@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
-from app.api import magazines, articles, admin, auth, account
+from app.api import magazines, articles, admin, auth, account, insights
 from app.core.security import check_secret_key
 
 # Falha na subida (producao sem SECRET_KEY) em vez de aceitar tokens forjaveis
@@ -24,6 +24,7 @@ app.include_router(articles.router, prefix=settings.API_V1_STR)
 app.include_router(admin.router, prefix=settings.API_V1_STR)
 app.include_router(auth.router, prefix=settings.API_V1_STR)
 app.include_router(account.router, prefix=settings.API_V1_STR)
+app.include_router(insights.router, prefix=settings.API_V1_STR)
 
 
 @app.get("/")

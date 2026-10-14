@@ -27,8 +27,25 @@ _TYPE_MAP = [
 ]
 
 
+_ORCID = re.compile(r"(\d{4}-\d{4}-\d{4}-\d{3}[\dXx])")
+
+
+XML_LANG = "{http://www.w3.org/XML/1998/namespace}lang"
+
+
+def _language_rank(lang: Optional[str]) -> int:
+    """Ordem de preferencia dos idiomas de um mesmo campo: portugues, sem marcacao, ingles, outros."""
+    lang = (lang or "").lower()
+    if lang.startswith("pt"):
+        return 0
+    if not lang:
+        return 1
+    return 2 if lang.startswith("en") else 3
+
+
 class OAIPMHExtractor:
     OAI_NAMESPACE = "http://www.openarchives.org/OAI/2.0/"
+    MARC_NAMESPACE = "http://www.loc.gov/MARC21/slim"
     DC_NAMESPACE = "http://purl.org/dc/elements/1.1/"
     DCTERMS_NAMESPACE = "http://purl.org/dc/terms/"
 
@@ -117,6 +134,58 @@ class OAIPMHExtractor:
 
         return new_articles, updated_articles, errors
 
+    def fetch_author_details(self) -> Dict[str, List[Dict]]:
+        """Autores com afiliacao e ORCID, por identificador OAI.
+
+        O oai_dc so traz o nome. O formato MARCXML (campo 720) traz tambem a instituicao ($u) e o ORCID ($0).
+        Falhas aqui nao devem impedir a coleta principal: quem chama trata a excecao.
+        """
+        details: Dict[str, List[Dict]] = {}
+        token = None
+        while True:
+            params = {"verb": "ListRecords"}
+            if token:
+                params["resumptionToken"] = token
+            else:
+                params["metadataPrefix"] = "marcxml"
+            root = etree.fromstring(self._make_request(params).content)
+
+            for record in root.findall(f".//{{{self.OAI_NAMESPACE}}}record"):
+                header = record.find(f"{{{self.OAI_NAMESPACE}}}header")
+                ident = header.find(f"{{{self.OAI_NAMESPACE}}}identifier") if header is not None else None
+                if ident is None or not ident.text:
+                    continue
+                people = self._parse_marc_authors(record)
+                if people:
+                    details[ident.text] = people
+
+            resumption = root.find(f".//{{{self.OAI_NAMESPACE}}}resumptionToken")
+            if resumption is None or not resumption.text:
+                return details
+            token = resumption.text
+
+    def _parse_marc_authors(self, record_elem) -> List[Dict]:
+        people = []
+        for field in record_elem.iter(f"{{{self.MARC_NAMESPACE}}}datafield"):
+            if field.get("tag") not in ("100", "700", "720"):
+                continue
+            subfields = {
+                (sub.get("code") or "").lstrip("$"): (sub.text or "").strip()
+                for sub in field.findall(f"{{{self.MARC_NAMESPACE}}}subfield")
+            }
+            name = subfields.get("a")
+            if not name:
+                continue
+            orcid = _ORCID.search(subfields.get("0", ""))
+            people.append(
+                {
+                    "name": name,
+                    "affiliation": subfields.get("u") or None,
+                    "orcid": orcid.group(1).upper() if orcid else None,
+                }
+            )
+        return people
+
     def _parse_record(self, record_elem) -> Dict:
         try:
             header = record_elem.find(f"{{{self.OAI_NAMESPACE}}}header")
@@ -141,11 +210,12 @@ class OAIPMHExtractor:
 
             article = {
                 "oai_identifier": oai_identifier,
-                "title": self._extract_text(dc, "title"),
+                # as revistas mandam titulo, resumo e assuntos em varios idiomas, em ordem que muda de uma
+                # coleta para outra: prefere sempre o portugues e so cai para os outros se faltar
+                "title": self._extract_localized(dc, "title"),
                 "authors": self._unique(self._extract_list(dc, "creator")),
-                "abstract": self._extract_text(dc, "description"),
-                # as revistas repetem os assuntos em cada idioma do registro
-                "keywords": self._unique(self._extract_list(dc, "subject")),
+                "abstract": self._extract_localized(dc, "description"),
+                "keywords": self._unique(self._extract_list_localized(dc, "subject")),
                 "publication_date": self._extract_publication_date(dc),
                 "url": self._extract_url(identifiers),
                 "doi": self._extract_doi(dc),
@@ -172,6 +242,22 @@ class OAIPMHExtractor:
         if elements:
             return elements[0].text
         return default
+
+    def _localized(self, element, tag_name: str) -> List[Tuple[int, str]]:
+        """(posicao do idioma na preferencia, texto) de cada ocorrencia do campo, em ordem estavel."""
+        found = []
+        for index, e in enumerate(element.findall(f".//{{{self.DC_NAMESPACE}}}{tag_name}")):
+            if e.text and e.text.strip():
+                found.append((_language_rank(e.get(XML_LANG)), index, e.text))
+        return [(rank, text) for rank, _, text in sorted(found)]
+
+    def _extract_localized(self, element, tag_name: str, default: str = None) -> Optional[str]:
+        values = self._localized(element, tag_name)
+        return values[0][1] if values else default
+
+    def _extract_list_localized(self, element, tag_name: str) -> List[str]:
+        """Todas as ocorrencias, com as do idioma preferido primeiro (as demais mantem a busca por elas)."""
+        return [text for _, text in self._localized(element, tag_name)]
 
     def _extract_list(self, element, tag_name: str, default: List = None) -> List[str]:
         elements = element.findall(f".//{{{self.DC_NAMESPACE}}}{tag_name}")

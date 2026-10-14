@@ -61,6 +61,8 @@ class Article(Base):
     magazine_id = Column(Integer, nullable=False, index=True)
     title = Column(String(500), nullable=False, index=True)
     authors = Column(JSON, default=[])
+    # [{name, affiliation, orcid}] vindo do MARCXML; None quando a revista nao informa
+    author_details = Column(JSON, nullable=True)
     abstract = Column(Text, nullable=True)
     keywords = Column(JSON, default=[])
     publication_date = Column(DateTime, nullable=True, index=True)

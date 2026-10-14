@@ -59,6 +59,7 @@ class ArticleResponse(ArticleBase):
     publisher: Optional[str] = None
     license: Optional[str] = None
     open_access: Optional[bool] = None
+    author_details: Optional[List[dict]] = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

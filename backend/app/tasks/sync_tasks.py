@@ -8,6 +8,16 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _author_details(extractor) -> dict:
+    """Afiliacao e ORCID dos autores; sao um extra, entao falhar aqui nao derruba a sincronizacao."""
+    try:
+        details = extractor.fetch_author_details()
+        return details if isinstance(details, dict) else {}
+    except Exception as e:
+        logger.warning(f"Afiliacoes dos autores indisponiveis: {e}")
+        return {}
+
+
 @shared_task(bind=True, max_retries=3)
 def sync_magazine(self, magazine_id: int):
     db = SessionLocal()
@@ -34,6 +44,7 @@ def sync_magazine(self, magazine_id: int):
         # Executar extrator
         extractor = OAIPMHExtractor(magazine.url_oai_pmh)
         new_articles, updated_articles, errors = extractor.fetch_articles()
+        author_details = _author_details(extractor)
 
         # Armazenar no banco com upsert
         articles_new_count = 0
@@ -46,6 +57,8 @@ def sync_magazine(self, magazine_id: int):
             oai_id = article_data.get("oai_identifier", "?")
             try:
                 article_data["magazine_id"] = magazine_id
+                if author_details.get(oai_id):
+                    article_data["author_details"] = author_details[oai_id]
 
                 existing = touched.get(oai_id) or db.query(Article).filter(Article.oai_identifier == oai_id).first()
 

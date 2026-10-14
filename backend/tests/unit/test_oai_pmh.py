@@ -480,3 +480,52 @@ class TestRealWorldRecord:
             "<dc:date>2021-12-01</dc:date>", "<dc:date>2021-10-03T19:39:21Z</dc:date><dc:date>2021-12-01</dc:date>"
         )
         assert _parse(record)["publication_date"] == datetime(2021, 12, 1)
+
+
+def _multilingual(order):
+    """Registro com titulo, resumo e assuntos em portugues e ingles, na ordem pedida."""
+    parts = {
+        "pt": (
+            '<dc:title xml:lang="pt-BR">Titulo em portugues</dc:title>'
+            '<dc:description xml:lang="pt-BR">Resumo em portugues</dc:description>'
+            '<dc:subject xml:lang="pt-BR">aprendizado de maquina</dc:subject>'
+        ),
+        "en": (
+            '<dc:title xml:lang="en-US">English title</dc:title>'
+            '<dc:description xml:lang="en-US">English abstract</dc:description>'
+            '<dc:subject xml:lang="en-US">machine learning</dc:subject>'
+        ),
+    }
+    body = "".join(parts[k] for k in order)
+    return f"""
+<record xmlns="{OAI_NS}">
+  <header><identifier>oai:x:1</identifier></header>
+  <metadata>
+    <oai_dc:dc xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" xmlns:dc="{DC_NS}">
+      {body}
+      <dc:identifier>https://example.com/a/1</dc:identifier>
+    </oai_dc:dc>
+  </metadata>
+</record>"""
+
+
+@pytest.mark.unit
+class TestLanguagePreference:
+    @pytest.mark.parametrize("order", [("pt", "en"), ("en", "pt")])
+    def test_portuguese_wins_whatever_the_feed_order(self, order):
+        a = _parse(_multilingual(order))
+        assert a["title"] == "Titulo em portugues"
+        assert a["abstract"] == "Resumo em portugues"
+        # as palavras-chave dos dois idiomas continuam (a busca por qualquer um segue valendo), portugues primeiro
+        assert a["keywords"] == ["aprendizado de maquina", "machine learning"]
+
+    def test_falls_back_to_english_when_there_is_no_portuguese(self):
+        record = _multilingual(("en",))
+        a = _parse(record)
+        assert a["title"] == "English title"
+        assert a["keywords"] == ["machine learning"]
+
+    def test_fields_without_language_mark_keep_working(self):
+        a = _parse(_make_record("oai:1", "Sem marcacao", keywords=["a", "b"]))
+        assert a["title"] == "Sem marcacao"
+        assert a["keywords"] == ["a", "b"]
