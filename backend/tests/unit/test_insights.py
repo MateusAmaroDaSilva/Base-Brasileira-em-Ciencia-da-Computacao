@@ -161,3 +161,35 @@ class TestMarcAuthors:
             {"name": "Vahldick, Adilson", "affiliation": "UDESC", "orcid": "0000-0002-0442-3735"},
             {"name": "Sem Afiliacao, Fulano", "affiliation": None, "orcid": None},
         ]
+
+
+class TestMagazineStats:
+    def test_per_magazine_numbers(self, test_client, db_session):
+        from datetime import datetime
+        from app.core.database import Article, Magazine
+        m = Magazine(name="Revista Teste Stats", url_oai_pmh="http://x.test/oai-stats")
+        db_session.add(m)
+        db_session.commit()
+        for i, (year, vol, iss, doi, kind) in enumerate([
+            (2019, "1", "1", "10.1/a", "artigo"), (2021, "1", "2", None, "artigo"), (2021, "2", "1", "10.1/c", "resenha"),
+        ]):
+            db_session.add(Article(
+                oai_identifier=f"oai:stats:{i}", magazine_id=m.id, title=f"T{i}", authors=[], keywords=[],
+                publication_date=datetime(year, 5, 1), volume=vol, issue=iss, doi=doi, issn="1234-5678", article_type=kind,
+            ))
+        empty = Magazine(name="Revista Vazia Stats", url_oai_pmh="http://x.test/oai-vazia")
+        db_session.add(empty)
+        db_session.commit()
+        try:
+            res = test_client.get("/api/v1/magazines/stats")
+            assert res.status_code == 200
+            by_id = {s["magazine_id"]: s for s in res.json()}
+            s = by_id[m.id]
+            assert (s["articles"], s["first_year"], s["last_year"], s["issues"], s["with_doi"]) == (3, 2019, 2021, 3, 2)
+            assert s["issn"] == "1234-5678"
+            assert s["types"] == {"artigo": 2, "resenha": 1}
+            assert by_id[empty.id]["articles"] == 0 and by_id[empty.id]["first_year"] is None
+        finally:
+            db_session.query(Article).filter(Article.oai_identifier.like("oai:stats:%")).delete(synchronize_session=False)
+            db_session.query(Magazine).filter(Magazine.id.in_([m.id, empty.id])).delete(synchronize_session=False)
+            db_session.commit()

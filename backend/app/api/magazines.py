@@ -1,9 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.api.deps import require_admin
-from app.core.database import get_db, Magazine
+from app.core.database import get_db, Article, Magazine
 from app.schemas.schemas import MagazineCreate, MagazineResponse, MagazineUpdate
-from typing import List
+from collections import Counter
+from typing import Dict, List, Optional
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/magazines", tags=["magazines"])
 
@@ -12,6 +14,58 @@ router = APIRouter(prefix="/magazines", tags=["magazines"])
 def list_magazines(db: Session = Depends(get_db)):
     magazines = db.query(Magazine).all()
     return magazines
+
+
+class MagazineStats(BaseModel):
+    magazine_id: int
+    articles: int
+    # None quando a revista ainda nao informa datas / volume
+    first_year: Optional[int] = None
+    last_year: Optional[int] = None
+    issues: Optional[int] = None
+    with_doi: int = 0
+    issn: Optional[str] = None
+    types: Dict[str, int] = {}
+
+
+@router.get("/stats", response_model=List[MagazineStats])
+def magazines_stats(db: Session = Depends(get_db)):
+    """Numeros de cada revista numa chamada so (artigos, anos, edicoes, DOI, ISSN, tipos)."""
+    rows = db.query(
+        Article.magazine_id, Article.publication_date, Article.volume, Article.issue,
+        Article.doi, Article.issn, Article.article_type,
+    ).all()
+    acc: Dict[int, dict] = {}
+    for mag_id, date, volume, issue, doi, issn, kind in rows:
+        a = acc.setdefault(mag_id, {"n": 0, "years": [], "issues": set(), "doi": 0, "issn": Counter(), "types": Counter()})
+        a["n"] += 1
+        if date:
+            a["years"].append(date.year)
+        if volume or issue:
+            a["issues"].add((volume or "", issue or ""))
+        if doi:
+            a["doi"] += 1
+        if issn:
+            a["issn"][issn] += 1
+        a["types"][kind or "artigo"] += 1
+
+    result = []
+    for m in db.query(Magazine).order_by(Magazine.id).all():
+        a = acc.get(m.id)
+        if not a:
+            result.append(MagazineStats(magazine_id=m.id, articles=0))
+            continue
+        result.append(MagazineStats(
+            magazine_id=m.id,
+            articles=a["n"],
+            first_year=min(a["years"]) if a["years"] else None,
+            last_year=max(a["years"]) if a["years"] else None,
+            issues=len(a["issues"]) or None,
+            with_doi=a["doi"],
+            issn=a["issn"].most_common(1)[0][0] if a["issn"] else None,
+            types=dict(a["types"]),
+        ))
+    return result
 
 
 @router.post("/", response_model=MagazineResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_admin)])
